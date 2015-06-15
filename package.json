@@ -1,0 +1,40 @@
+{
+  "name": "NRAPI-React",
+  "version": "1.0.0",
+  "description": "api.nihongoresources.com",
+  "main": "index.js",
+  "scripts": {
+    "build:babel": "babel src --watch --out-dir build --extensions \".js\",\".jsx\",\".json\"",
+    "build:css": "autoless src site/",
+    "build:webpack": "webpack --progress --colors --watch",
+    "build": "parallelshell \"npm run build:babel\" \"npm run build:css\" \"npm run build:webpack\"",
+    "server": "node server/app.js",
+    "start": "parallelshell \"npm run server\" \"npm run build\" \"live-server site\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Pomax/NRAPI-React.git"
+  },
+  "author": "Pomax",
+  "license": "none",
+  "bugs": {
+    "url": "https://github.com/Pomax/NRAPI-React/issues"
+  },
+  "homepage": "https://github.com/Pomax/NRAPI-React",
+  "dependencies": {
+    "autoless": "^0.1.7",
+    "babel": "^5.5.8",
+    "babel-core": "^5.5.8",
+    "babel-loader": "^5.1.4",
+    "jp-conjugation": "0.0.2",
+    "jp-conversion": "0.0.*",
+    "jp-giongo": "0.0.*",
+    "json-loader": "^0.5.2",
+    "kanji-relations": "0.0.*",
+    "node-libs-browser": "^0.5.2",
+    "parallelshell": "^1.1.1",
+    "react": "^0.13.3",
+    "superagent": "^1.2.0",
+    "webpack": "^1.9.11"
+  }
+}

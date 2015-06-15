@@ -1,0 +1,113 @@
+// this is fairly ridiculous but I can't make Babel properly track .json files
+module.exports =
+[
+   {
+    "reb":[
+     "ふびん"
+    ],
+    "keb":[
+     "不便",
+     "不愍",
+     "不憫"
+    ],
+    "sense":[
+     {
+      "id":68892,
+      "xref":[
+
+      ],
+      "ant":[
+
+      ],
+      "pos":[
+         "adj-na",
+         "n"
+      ],
+      "gloss":[
+         "pity",
+         "compassion"
+      ]
+     }
+    ],
+    "id":"1602810"
+   },
+   {
+    "reb":[
+     "ふへん"
+    ],
+    "keb":[
+     "普遍",
+     "普偏",
+     "普辺"
+    ],
+    "sense":[
+     {
+      "id":68893,
+      "xref":[
+
+      ],
+      "ant":[
+         "特殊"
+      ],
+      "pos":[
+         "adj-no",
+         "n",
+         "vs"
+      ],
+      "gloss":[
+         "universal",
+         "general",
+         "ubiquitous",
+         "omnipresent"
+      ]
+     }
+    ],
+    "id":"1602820"
+   },
+   {
+    "reb":[
+     "ふへんせい"
+    ],
+    "keb":[
+     "普偏性",
+     "普辺性"
+    ],
+    "sense":[
+     {
+      "id":68894,
+      "xref":[
+
+      ],
+      "ant":[
+
+      ],
+      "pos":[
+         "n"
+      ],
+      "gloss":[
+         "universality",
+         "ubiquity",
+         "omnipresence"
+      ]
+     }
+    ],
+    "id":"1602830"
+   },
+  {
+    "reb":[
+      "あそぶ",
+      "あすぶ"
+    ],
+    "keb":[
+      "遊ぶ"
+    ],
+    "sense":[
+      {"id":61470,"xref":[],"ant":[],"pos":["v5b","vi"],"gloss":["to play","to enjoy oneself","to have a good time"]},
+      {"id":61471,"xref":[],"ant":[],"pos":[],"gloss":["to mess about (with alcohol, gambling, philandery, etc.)"]},
+      {"id":61472,"xref":[],"ant":[],"pos":[],"gloss":["to be idle","to do nothing","to be unused"]},
+      {"id":61473,"xref":[],"ant":[],"pos":[],"gloss":["to go to (for pleasure or for study)"]},
+      {"id":61474,"xref":[],"ant":[],"pos":[],"gloss":["to intentionally throw a ball to lower the batter's concentration"]}
+    ],
+    "id":"1542160"
+  }
+];

@@ -1,0 +1,24 @@
+.entry {
+
+  & + .entry {
+    margin-top: 1em;
+  }
+
+  .ruby {
+    margin-left: 0.5em;
+    display: inline-block;
+
+    div {
+      font-size: 75%;
+      text-align: center;
+    }
+
+    div + div {
+      font-size: 100%;
+    }
+
+    & + .ruby {
+      margin-left: 0.5em
+    }
+  }
+}
