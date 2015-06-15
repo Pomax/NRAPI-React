@@ -1,8 +1,8 @@
 var path = require("path");
 module.exports = {
-  entry: path.resolve(__dirname, 'src/index.js'),
+  entry: path.resolve(__dirname, 'build/index.js'),
   output: {
-    path: 'public',
+    path: 'site',
     filename: 'bundle.js'
   },
   module: {
@@ -23,5 +23,5 @@ module.exports = {
         include: [path.resolve(__dirname, 'src'), path.resolve(__dirname, 'node_modules')]
       }
     ]
-  }
+  },
 };
