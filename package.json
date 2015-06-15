@@ -4,12 +4,12 @@
   "description": "api.nihongoresources.com",
   "main": "index.js",
   "scripts": {
-    "build:babel": "babel src --watch --out-dir build --extensions \".js\",\".jsx\",\".json\"",
-    "build:css": "autoless src site/",
+    "build:pre": "mkdirp public/less",
+    "build:css": "autoless src public/",
     "build:webpack": "webpack --progress --colors --watch",
-    "build": "parallelshell \"npm run build:babel\" \"npm run build:css\" \"npm run build:webpack\"",
-    "server": "node server/app.js",
-    "start": "parallelshell \"npm run server\" \"npm run build\" \"live-server site\""
+    "build": "npm run build:pre && parallelshell \"npm run build:css\" \"npm run build:webpack\"",
+    "run:server": "node server/app.js",
+    "start": "parallelshell \"npm run run:server\" \"npm run build\" \"live-server public\""
   },
   "repository": {
     "type": "git",
@@ -31,6 +31,8 @@
     "jp-giongo": "0.0.*",
     "json-loader": "^0.5.2",
     "kanji-relations": "0.0.*",
+    "live-server": "^0.7.1",
+    "mkdirp": "^0.5.1",
     "node-libs-browser": "^0.5.2",
     "parallelshell": "^1.1.1",
     "react": "^0.13.3",

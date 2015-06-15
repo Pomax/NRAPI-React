@@ -1,7 +1,7 @@
 var React = require('react');
 
-var Tabs = require('./tabs/tabs');
-var Results = require('./results/results');
+var Tabs = require('./tabs/tabs.jsx');
+var Results = require('./results/results.jsx');
 
 var API = React.createClass({
   getInitialState: function() {

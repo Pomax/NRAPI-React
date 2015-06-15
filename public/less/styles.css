@@ -1,0 +1,28 @@
+.entry + .entry {
+  margin-top: 1em;
+}
+.entry .ruby {
+  margin-left: 0.5em;
+  display: inline-block;
+}
+.entry .ruby div {
+  font-size: 75%;
+  text-align: center;
+}
+.entry .ruby div + div {
+  font-size: 100%;
+}
+.entry .ruby + .ruby {
+  margin-left: 0.5em;
+}
+.filters {
+  border: 1px solid black;
+  margin: 1em;
+  padding: 1em;
+}
+fieldset {
+  display: inline-block;
+}
+[hidden] {
+  display: none!important;
+}

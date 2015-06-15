@@ -138,9 +138,6 @@ module.exports = function(options) {
       var where = [];
       if(hiragana) { where.push("data LIKE '" + hiragana.replace(/\*/g,'%') + "'"); }
       if(katakana) { where.push("data LIKE '" + katakana.replace(/\*/g,'%') + "'"); }
-
-      var fs = require("fs");
-      fs.writeFileSync("log", where.join(" OR "));
       kanaModel .findAll({ where: where.join(" OR ") })
                 .error(function(err) { next(err); })
                 .success(success);

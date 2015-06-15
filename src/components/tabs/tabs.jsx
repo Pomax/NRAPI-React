@@ -1,10 +1,10 @@
 var React = require('react');
 
 var tabs = {
-  JPEN: require('./jpen/jpen'),
-  KANJI: require('./kanji/kanji'),
-  GIONGO: require('./giongo/giongo'),
-  NAMES: require('./names/names')
+  JPEN: require('./jpen/jpen.jsx'),
+  KANJI: require('./kanji/kanji.jsx'),
+  GIONGO: require('./giongo/giongo.jsx'),
+  NAMES: require('./names/names.jsx')
 };
 
 var Tabs = React.createClass({

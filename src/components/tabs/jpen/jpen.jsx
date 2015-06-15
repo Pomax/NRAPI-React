@@ -3,8 +3,8 @@ var dictionaries = require("../../../lib/dictionaries");
 
 var JPEN = React.createClass({
   statics: {
-    filters: require("./filters"),
-    entry: require("./entry"),
+    filters: require("./filters.jsx"),
+    entry: require("./entry.jsx"),
     dictionary: dictionaries.jpen
   },
 
