@@ -1,26 +1,10 @@
 var React = require('react');
 
 var Results = React.createClass({
-  getInitialState: function() {
-    return {
-      term: "",
-      resultset: false,
-      filterSettings: {}
-    };
-  },
-
-  componentDidUpdate: function(prevProps, prevState) {
-    if (this.props.term !== prevProps.term) {
-      this.setState({
-        term: this.props.term,
-        resultset: this.props.resultset
-      })
-    }
-  },
 
   generateResults: function() {
     var Entry = this.props.Entry;
-    return this.state.resultset.results.map(e => {
+    return this.props.resultset.results.map(e => {
       return <Entry key={e.id} {...e}/>;
     });
   },
@@ -28,9 +12,9 @@ var Results = React.createClass({
   getFilters: function() {
     var Filters = this.props.Filters;
     return (
-      <Filters term={this.state.term}
-               filterSettings={this.state.filterSettings}
-               resultset={this.state.resultset}
+      <Filters term={this.props.term}
+               filterSettings={this.props.filterSettings}
+               resultset={this.props.resultset}
                onChange={this.filterResults}/>
     );
   },
@@ -43,7 +27,7 @@ var Results = React.createClass({
   },
 
   render: function() {
-    var resultset = this.state.resultset;
+    var resultset = this.props.resultset;
     if (!resultset) { return <div>results listing</div>; }
 
     var count = 0;

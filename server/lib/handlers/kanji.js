@@ -31,14 +31,15 @@ module.exports = function(models) {
 
   // override for findUsingKanji, since that's
   // just a get for the kanji database.
-  var findUsingKanji = function findUsingKanji(kanji, next) {
-    return this.findEntry(kanji, function(err,result) {
-      next(err,[result]);
-    });
+  var findUsingKanji = function(kanji, next, sanitizeSQL, runQuery, prefix) {
+    kanji = sanitizeSQL(kanji).replace(/\*/g,'%');
+    var query = "SELECT json.data AS json FROM "+prefix+"dictionary_json AS json WHERE json.id = '"+kanji+"'";
+    runQuery(query, next);
   };
 
   var options = {
-    sequelize: models.sequelize,
+    sequelize: models.sequelizek,
+    prefix: "kanji_",
     json: models.kanji_dictionary_JSON,
     kanji: false,
     kana: models.kanji_dictionary_reb,

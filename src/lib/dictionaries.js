@@ -9,6 +9,7 @@ function restPoint(dictname) {
             var json = res.text;
             var data = JSON.parse(json);
             callback({
+              type: dictname,
               count: data.length,
               results: data
             });
@@ -19,5 +20,6 @@ function restPoint(dictname) {
 
 
 module.exports = {
-  jpen: restPoint("dict")
+  jpen: restPoint("dict"),
+  kanji: restPoint("kanji")
 };

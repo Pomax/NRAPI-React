@@ -20,23 +20,6 @@ module.exports = function(dataHandler) {
         if(err) { return next(err); }
         res.render(req.params.dict + "/result.html", { results: results });
       });
-    },
-
-    // when everything goes wrong
-    errorLogger: function(err, req, res, next) {
-      console.error('error: ' + JSON.stringify({
-        timestamp: Date.now(),
-        error: err
-      }));
-      next(err);
-    },
-    errorHandler: function(err, req, res, next) {
-      res.status(500);
-      res.render('err.html', {
-        error: err,
-        params: req.params,
-        query: req.query
-      });
     }
   };
 };

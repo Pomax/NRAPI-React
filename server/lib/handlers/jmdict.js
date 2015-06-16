@@ -4,7 +4,7 @@ module.exports = function(models) {
   var verbs = require("jp-conjugation");
 
   return require("./base/generic")({
-    sequelize: models.sequelize,
+    sequelize: models.sequelizej,
     json: models.dictionary_JSON,
     kanji: models.dictionary_keb,
     kana: models.dictionary_reb,

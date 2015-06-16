@@ -4,6 +4,8 @@ module.exports = function(options) {
   var IME = require("jp-conversion");
 
   var sequelize = options.sequelize,
+      prefix = options.prefix || "",
+
       jsonModel = options.json,
       kanjiModel = options.kanji,
       kanaModel = options.kana,
@@ -25,32 +27,28 @@ module.exports = function(options) {
     return term.replace(/'/g, '');
   };
 
+  var runQuery = function(query, next) {
+    sequelize
+    .query(query)
+    .error(function(err) { next(err); })
+    .success(function(json) {
+      json = json.map(function(line) {
+        var b = new Buffer(line.json,'base64');
+        return JSON.parse(b.toString('utf-8'));
+      });
+      next(false, json);
+    });
+  };
+
   return {
     /**
      * find an entry by its id
      */
     findEntry: function(id, next) {
       if(overrides.findEntry) { return overrides.findEntry.call(this, id, next); }
-      jsonModel .find({ where: { id: id }})
-                .error(function(err) { next(err); })
-                .success(function(result) {
-                  var data = {};
-                  if(result && result.data) {
-                    var b = new Buffer(result.data, 'base64');
-                    var s = b.toString();
-                    try { data = JSON.parse(s); }
-                    catch (e) {
-                      var err = "parse error for: " + result.data;
-                      console.error(err,"\n",s);
-                      return next(err);
-                    }
-                  } else {
-                    console.log("error on result for "+id, result);
-                  }
-                  if(options.postFindEntry) {
-                    options.postFindEntry(id, data, next);
-                  } else { next(false, data); }
-                });
+      var query = "SELECT json.data AS json FROM "+prefix+"dictionary_json AS json " +
+                  "WHERE json.id = " + id;
+      runQuery(query, next);
     },
 
     /**
@@ -86,28 +84,10 @@ module.exports = function(options) {
      */
     findUsingKanji: function(kanji, next) {
       kanji = sanitizeSQL(kanji).replace(/\*/g,'%');
-      if(overrides.findUsingKanji) { return overrides.findUsingKanji.call(this, kanji, next); }
-      var findEntry = this.findEntry;
-      var success = function(results) {
-        var ids = results.map(function(v) { return v.id; });
-        ids = ids.filter(function(elem, pos) {
-          return ids.indexOf(elem) == pos;
-        });
-        var entries = [];
-        (function nextId() {
-          if(ids.length === 0) {
-            return next(false, entries);
-          }
-          var id = ids.splice(0,1)[0];
-          findEntry(id, function(err, result) {
-            entries.push(result);
-            nextId();
-          });
-        }());
-      };
-      kanjiModel.findAll({ where: ["data LIKE '" + kanji + "'"]})
-                .error(function(err) { next(err); })
-                .success(success);
+      if(overrides.findUsingKanji) { return overrides.findUsingKanji.call(this, kanji, next, sanitizeSQL, runQuery, prefix); }
+      var query = "SELECT DISTINCT json.data AS json FROM "+prefix+"dictionary_json AS json, "+prefix+"dictionary_keb AS keb " +
+                  "WHERE keb.data LIKE '"+kanji.replace(/\*/g,'%') +"' AND json.id = keb.id";
+      runQuery(query, next);
     },
 
     /**
@@ -117,30 +97,13 @@ module.exports = function(options) {
       hiragana = sanitizeSQL(hiragana);
       katakana = sanitizeSQL(katakana);
       if(overrides.findUsingKana) { return overrides.findUsingKana.call(this, hiragana, katakana, next); }
-      var findEntry = this.findEntry;
-      var success = function(results) {
-        var ids = results.map(function(v) { return v.id; });
-        ids = ids.filter(function(elem, pos) {
-          return ids.indexOf(elem) == pos;
-        });
-        var entries = [];
-        (function nextId() {
-          if(ids.length === 0) {
-            return next(false, entries);
-          }
-          var id = ids.splice(0,1)[0];
-          findEntry(id, function(err, result) {
-            entries.push(result);
-            nextId();
-          });
-        }());
-      };
-      var where = [];
-      if(hiragana) { where.push("data LIKE '" + hiragana.replace(/\*/g,'%') + "'"); }
-      if(katakana) { where.push("data LIKE '" + katakana.replace(/\*/g,'%') + "'"); }
-      kanaModel .findAll({ where: where.join(" OR ") })
-                .error(function(err) { next(err); })
-                .success(success);
+      var query = "SELECT DISTINCT json.data AS json FROM "+prefix+"dictionary_json AS json, "+prefix+"dictionary_reb AS reb WHERE ";
+      var opts = [];
+      if(hiragana) { opts.push(" reb.data LIKE '" + hiragana.replace(/\*/g,'%') + "'"); }
+      if(katakana) { opts.push(" reb.data LIKE '" + katakana.replace(/\*/g,'%') + "'"); }
+      query += "(" + opts.join("OR") + ") AND json.id = reb.id";
+      runQuery(query, next);
+
     },
 
     /**
@@ -149,48 +112,9 @@ module.exports = function(options) {
     findUsingEnglish: function(eng, next) {
       eng = sanitizeSQL(eng);
       if(overrides.findUsingEnglish) { return overrides.findUsingEnglish.call(this, eng, next); }
-      var findEntry = this.findEntry;
-      var success = function(results) {
-        var rankings = {};
-        var ids = results.map(function(v) {
-          v = v.dataValues;
-          rankings[v.id] = v.ranking;
-          return v.id;
-        });
-        ids = ids.filter(function(elem, pos) {
-          return ids.indexOf(elem) == pos;
-        });
-        var entries = [];
-        (function nextId() {
-          if(ids.length === 0) {
-            return next(false, entries);
-          }
-          var id = ids.splice(0,1)[0];
-          findEntry(id, function(err, result) {
-            result.ranking = rankings[id];
-            entries.push(result);
-            nextId();
-          });
-        }());
-      };
-      var where = "MATCH (data) AGAINST ('" + eng + "' IN NATURAL LANGUAGE MODE)";
-      if(eng.length < 4) {
-        where = "data LIKE '"+eng+"%' OR data LIKE '%"+eng+"'";
-      }
-      var findProps = {
-        attributes: ["id", "data", [sequelize.literal(where), "ranking"]],
-        where: [where]
-      };
-      if(eng.indexOf("*") > -1) {
-        // If there are wildcards we need to use RLIKE instead
-        // of full text searching.
-        eng = eng.replace(/\*/g, '.*').replace(/_/g,'.');
-        findProps.where =  "data RLIKE '[[:<:]]" + eng + "[[:>:]]'";
-        delete findProps.attributes;
-      }
-      englishModel .findAll(findProps)
-                   .error(function(err) { next(err); })
-                   .success(success);
+      var query = "SELECT DISTINCT json.data AS json FROM "+prefix+"dictionary_json AS json, "+prefix+"dictionary_eng AS eng " +
+                  "WHERE eng.data LIKE '"+eng.replace(/\*/g,'%')+"' AND json.id = eng.id";
+      runQuery(query, next);
     }
   };
 };

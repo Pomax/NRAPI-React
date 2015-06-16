@@ -26,27 +26,12 @@ var API = React.createClass({
   },
 
   startSearch: function(callback) {
-    this.setState({
-        searching: true
-    }, function() {
-      callback();
-    });
-  },
-
-  changeTab: function(evt) {
-    this.setState({
-      tab: evt.tab
-    });
+    this.setState({ searching: true }, callback());
   },
 
   processResults: function(evt) {
-    this.setState({
-      term: evt.term,
-      resultset: evt.resultset,
-      filters: evt.filters,
-      entry: evt.entry,
-      searching: false
-    });
+    evt.searching = false
+    this.setState(evt);
   }
 });
 

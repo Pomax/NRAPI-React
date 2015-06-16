@@ -15,7 +15,8 @@
     "mysql": "2.3.*",
     "nunjucks": "1.0.*",
     "sax": "*",
-    "sequelize": "1.7.*"
+    "sequelize": "1.7.*",
+    "sqlite3": "^3.0.8"
   },
   "scripts": {
     "test": "grunt"

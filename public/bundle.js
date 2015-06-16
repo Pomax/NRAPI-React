@@ -20478,27 +20478,12 @@
 	  },
 
 	  startSearch: function startSearch(callback) {
-	    this.setState({
-	      searching: true
-	    }, function () {
-	      callback();
-	    });
-	  },
-
-	  changeTab: function changeTab(evt) {
-	    this.setState({
-	      tab: evt.tab
-	    });
+	    this.setState({ searching: true }, callback());
 	  },
 
 	  processResults: function processResults(evt) {
-	    this.setState({
-	      term: evt.term,
-	      resultset: evt.resultset,
-	      filters: evt.filters,
-	      entry: evt.entry,
-	      searching: false
-	    });
+	    evt.searching = false;
+	    this.setState(evt);
 	  }
 	});
 
@@ -20642,6 +20627,7 @@
 	        var json = res.text;
 	        var data = JSON.parse(json);
 	        callback({
+	          type: dictname,
 	          count: data.length,
 	          results: data
 	        });
@@ -20651,7 +20637,8 @@
 	};
 
 	module.exports = {
-	  jpen: restPoint("dict")
+	  jpen: restPoint("dict"),
+	  kanji: restPoint("kanji")
 	};
 
 /***/ },
@@ -22935,24 +22922,73 @@
 
 	"use strict";
 
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 	var React = __webpack_require__(1);
+	var dictionaries = __webpack_require__(161);
 
 	var KANJI = React.createClass({
 	  displayName: "KANJI",
 
 	  statics: {
 	    filters: __webpack_require__(170),
-	    entry: __webpack_require__(171)
+	    entry: __webpack_require__(171),
+	    dictionary: dictionaries.kanji
+	  },
+
+	  getInitialState: function getInitialState() {
+	    return {
+	      searchterm: "海"
+	    };
 	  },
 
 	  render: function render() {
+	    var iprops = {
+	      value: this.state.searchterm,
+	      onKeyDown: this.testSearch,
+	      onChange: this.updateSearchTerm
+	    };
 	    return React.createElement(
 	      "div",
 	      null,
-	      "kanji"
+	      "Kanji search: ",
+	      React.createElement("input", _extends({ type: "text" }, iprops)),
+	      React.createElement(
+	        "button",
+	        { onClick: this.startSearch },
+	        "search kanji"
+	      )
 	    );
-	  }
+	  },
 
+	  testSearch: function testSearch(evt) {
+	    if (evt.keyCode === 13) {
+	      this.startSearch();
+	    }
+	  },
+
+	  updateSearchTerm: function updateSearchTerm(evt) {
+	    this.setState({
+	      searchterm: evt.target.value
+	    });
+	  },
+
+	  startSearch: function startSearch() {
+	    this.props.startSearch(this.search);
+	  },
+
+	  search: function search() {
+	    KANJI.dictionary.search(this.state.searchterm, this.processResults);
+	  },
+
+	  processResults: function processResults(resultset) {
+	    this.props.processResults({
+	      term: this.state.searchterm,
+	      resultset: resultset,
+	      filters: KANJI.filters,
+	      entry: KANJI.entry
+	    });
+	  }
 	});
 
 	module.exports = KANJI;
@@ -22961,21 +22997,276 @@
 /* 170 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict';
+	"use strict";
 
 	var React = __webpack_require__(1);
+	var verbs = __webpack_require__(166);
+	var adverbs = ["adv", "adv-to"];
+	var adjectives = ["adj", "adj-no", "adj-na", "adj-i"];
+
+	var compare = {
+	  kana: function kana(a, b) {
+	    a = a.reb[0];
+	    b = b.reb[0];
+	    return a < b ? -1 : a > b ? 1 : 0;
+	  },
+	  kanji: function kanji(a, b) {
+	    a = a.keb ? a.keb[0] : a.reb[0];
+	    b = b.keb ? b.keb[0] : b.reb[0];
+	    return a < b ? 1 : -1;
+	  }
+	};
 
 	var Filters = React.createClass({
-	  displayName: 'Filters',
+	  displayName: "Filters",
+
+	  statics: {
+	    defaultState: {
+	      hideAll: false,
+	      romaji: false,
+	      sorting: "kana",
+	      pos: "all"
+	    }
+	  },
+
+	  getInitialState: function getInitialState() {
+	    var initialState = Filters.defaultState;
+	    initialState.term = this.props.term;
+	    var settings = this.props.filterSettings || {};
+	    Object.keys(settings).forEach(function (v) {
+	      initialState[v] = settings[v];
+	    });
+	    return initialState;
+	  },
+
+	  componentDidMount: function componentDidMount() {
+	    this.filter();
+	  },
+
+	  componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
+	    if (this.props.term !== prevProps.term) {
+	      this.filter();
+	    }
+	  },
 
 	  render: function render() {
 	    return React.createElement(
-	      'div',
+	      "div",
 	      null,
-	      'filters for kanji'
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "romaji: "
+	        ),
+	        React.createElement("input", { type: "checkbox", checked: this.state.romaji, onChange: this.toggle("romaji") })
+	      ),
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "sort on: "
+	        ),
+	        React.createElement(
+	          "select",
+	          { value: this.state.sorting, onChange: this.setSelection("sorting") },
+	          React.createElement(
+	            "option",
+	            { value: "kana" },
+	            "kana"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "kanji" },
+	            "kanji"
+	          )
+	        )
+	      ),
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "reverse sort: "
+	        ),
+	        React.createElement("input", { type: "checkbox", checked: this.state.revset, onChange: this.toggle("revsort") })
+	      ),
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "show: "
+	        ),
+	        React.createElement(
+	          "select",
+	          { value: this.state.pos, onChange: this.setSelection("pos") },
+	          React.createElement(
+	            "option",
+	            { value: "all" },
+	            "all results"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "v" },
+	            "├ verbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "v1" },
+	            "│ ├ ichidan verbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "v5" },
+	            "│ ├ godan verbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "vs" },
+	            "│ └ する verbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "n" },
+	            "├ nouns"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adj-no" },
+	            " │ └ の qualifier"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adj" },
+	            "├ adjectives"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adj-i" },
+	            "│ ├ い-adjectives"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adj-na" },
+	            " │ └ な-adjectives"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adv" },
+	            "├ adverbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adj-to" },
+	            " │ └ と adverbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "exp" },
+	            "└ expressions"
+	          )
+	        )
+	      )
 	    );
-	  }
+	  },
 
+	  setSelection: function setSelection(name) {
+	    var _this = this;
+
+	    return function (evt) {
+	      var update = {};
+	      update[name] = evt.target.value;
+	      _this.setState(update, _this.filter);
+	    };
+	  },
+
+	  toggle: function toggle(name) {
+	    var _this2 = this;
+
+	    return function (evt) {
+	      var update = {};
+	      update[name] = !_this2.state[name];
+	      _this2.setState(update, function () {
+	        this.filter();
+	      });
+	    };
+	  },
+
+	  filter: function filter() {
+	    var resultset = this.props.resultset;
+	    var results = resultset.results.filter(function (e) {
+	      return !!e;
+	    });
+	    results.forEach(this.filterEntry);
+	    resultset.results = results.sort(this.sortEntries);
+	    this.props.onChange(this.state, resultset);
+	  },
+
+	  sortEntries: function sortEntries(a, b) {
+	    var cmp = compare[this.state.sorting](a, b);
+	    return this.state.revsort ? -cmp : cmp;
+	  },
+
+	  /**
+	   * This is the function that makes all the magic happen
+	   */
+	  filterEntry: function filterEntry(entry) {
+	    // selective UI filtering:
+	    entry.showRomaji = this.state.romaji;
+
+	    // integral visibility filtering:
+	    entry.hidden = this.state.hideAll;
+
+	    if (this.state.pos !== "all") {
+	      entry.hidden = !this.posMatch(this.state.pos, entry);
+	    }
+	  },
+
+	  /**
+	   * POS matching is a little hectic...
+	   */
+	  posMatch: function posMatch(pos, entry) {
+	    for (var i = 0, s; i < entry.sense.length; i++) {
+	      s = entry.sense[i];
+	      // verbs need a fair few checks
+	      if (pos === "v") {
+	        for (var j = 0, v; j < verbs.all.length; j++) {
+	          v = verbs.all[j];
+	          if (s.pos.indexOf(v) > -1) return true;
+	        }
+	      } else if (pos === "v1") {
+	        for (var j = 0, v; j < verbs.v1.length; j++) {
+	          v = verbs.v1[j];
+	          if (s.pos.indexOf(v) > -1) return true;
+	        }
+	      } else if (pos === "v5") {
+	        for (var j = 0, v; j < verbs.v5.length; j++) {
+	          v = verbs.v5[j];
+	          if (s.pos.indexOf(v) > -1) return true;
+	        }
+	      } else if (pos === "adj") {
+	        for (var j = 0, v; j < adjectives.length; j++) {
+	          v = adjectives[j];
+	          if (s.pos.indexOf(v) > -1) return true;
+	        }
+	      } else if (pos === "adv") {
+	        for (var j = 0, v; j < adverbs.length; j++) {
+	          v = adverbs[j];
+	          if (s.pos.indexOf(v) > -1) return true;
+	        }
+	      } else {
+	        if (s.pos.indexOf(pos) > -1) return true;
+	      }
+	    }
+	    return false;
+	  }
 	});
 
 	module.exports = Filters;
@@ -22988,17 +23279,113 @@
 
 	var React = __webpack_require__(1);
 
+	var romanise = __webpack_require__(168).romanise;
+
 	var Entry = React.createClass({
 	  displayName: 'Entry',
 
+	  statics: {
+	    rt: {
+	      alignContent: 'center',
+	      rubyAlign: 'center'
+	    }
+	  },
+
+	  generateReadings: function generateReadings(entry) {
+	    var reb = entry.readings;
+	    if (entry.showRomaji) {
+	      return reb.map(function (reading) {
+	        return React.createElement(
+	          'div',
+	          { className: 'ruby' },
+	          React.createElement(
+	            'div',
+	            null,
+	            romanise(reading)
+	          ),
+	          React.createElement(
+	            'div',
+	            null,
+	            reading
+	          )
+	        );
+	      });
+	    }
+	    return reb ? React.createElement(
+	      'span',
+	      null,
+	      reb.join(', ')
+	    ) : false;
+	  },
+
+	  generateMeanings: function generateMeanings(entry) {
+	    var eng = entry.meanings;
+	    return React.createElement(
+	      'span',
+	      null,
+	      eng.join(', ')
+	    );
+	  },
+
 	  render: function render() {
+	    var entry = this.props;
 	    return React.createElement(
 	      'div',
-	      null,
-	      'id: ',
-	      this.props.id,
-	      ', term: ',
-	      this.props.term
+	      { className: 'entry', hidden: this.props.hidden },
+	      React.createElement(
+	        'h1',
+	        null,
+	        entry.literal
+	      ),
+	      React.createElement(
+	        'span',
+	        null,
+	        '(',
+	        entry.codepoint,
+	        ')'
+	      ),
+	      ',',
+	      React.createElement(
+	        'span',
+	        null,
+	        entry.radical
+	      ),
+	      ',',
+	      React.createElement(
+	        'span',
+	        null,
+	        entry.strokeCount
+	      ),
+	      ',',
+	      React.createElement(
+	        'span',
+	        null,
+	        entry.grade
+	      ),
+	      ',',
+	      React.createElement(
+	        'span',
+	        null,
+	        entry.frequency
+	      ),
+	      ',',
+	      React.createElement(
+	        'span',
+	        null,
+	        entry.jlpt
+	      ),
+	      React.createElement(
+	        'div',
+	        null,
+	        'reading:  ',
+	        this.generateReadings(entry)
+	      ),
+	      React.createElement(
+	        'div',
+	        null,
+	        'meanings: ',
+	        this.generateMeanings(entry)
+	      )
 	    );
 	  }
 
@@ -23173,35 +23560,18 @@
 	var Results = React.createClass({
 	  displayName: "Results",
 
-	  getInitialState: function getInitialState() {
-	    return {
-	      term: "",
-	      resultset: false,
-	      filterSettings: {}
-	    };
-	  },
-
-	  componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
-	    if (this.props.term !== prevProps.term) {
-	      this.setState({
-	        term: this.props.term,
-	        resultset: this.props.resultset
-	      });
-	    }
-	  },
-
 	  generateResults: function generateResults() {
 	    var Entry = this.props.Entry;
-	    return this.state.resultset.results.map(function (e) {
+	    return this.props.resultset.results.map(function (e) {
 	      return React.createElement(Entry, _extends({ key: e.id }, e));
 	    });
 	  },
 
 	  getFilters: function getFilters() {
 	    var Filters = this.props.Filters;
-	    return React.createElement(Filters, { term: this.state.term,
-	      filterSettings: this.state.filterSettings,
-	      resultset: this.state.resultset,
+	    return React.createElement(Filters, { term: this.props.term,
+	      filterSettings: this.props.filterSettings,
+	      resultset: this.props.resultset,
 	      onChange: this.filterResults });
 	  },
 
@@ -23213,7 +23583,7 @@
 	  },
 
 	  render: function render() {
-	    var resultset = this.state.resultset;
+	    var resultset = this.props.resultset;
 	    if (!resultset) {
 	      return React.createElement(
 	        "div",
