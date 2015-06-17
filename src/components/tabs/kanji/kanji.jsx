@@ -20,6 +20,13 @@ var KANJI = React.createClass({
       onKeyDown: this.testSearch,
       onChange: this.updateSearchTerm
     };
+
+    //
+    // TODO: allow queries on kanji, reading, meaning, or any of the numerical metadata.
+    //
+    // This will need a modeling refactor.
+    //
+
     return (
       <div>
         Kanji search: <input type="text" {...iprops}/>

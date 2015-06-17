@@ -1,11 +1,21 @@
 var React = require('react');
+var ime = require("jp-conversion");
 
 var Entry = React.createClass({
 
   render: function() {
-    return (
-      <div>id: {this.props.id}, term: {this.props.term}</div>
-    );
+    var keys = Object.keys(this.props);
+    keys.splice(keys.indexOf("id"),1);
+    var elements = keys.map(key => {
+      return <div>{key}: {this.props[key].join(", ")}</div>;
+    })
+
+    var term = ime.convert(this.props.id);
+
+    return (<div>
+      <div>{ term.katakana }</div>
+      {elements}
+    </div>);
   }
 
 });

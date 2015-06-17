@@ -1,4 +1,5 @@
 var REST = require("superagent");
+var giongo = require("jp-giongo");
 
 function restPoint(dictname) {
   return {
@@ -21,5 +22,21 @@ function restPoint(dictname) {
 
 module.exports = {
   jpen: restPoint("dict"),
-  kanji: restPoint("kanji")
+  kanji: restPoint("kanji"),
+  giongo: {
+    search: function(term, callback) {
+      var results = giongo.find(term);
+      results = Object.keys(results).map(term => {
+        var data = results[term];
+        data.id = term;
+        return data;
+      });
+      callback({
+        type: "giongo",
+        count: results.length,
+        results: results
+      });
+    }
+  }
 };
+
