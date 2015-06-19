@@ -1,11 +1,19 @@
 var React = require('react');
-var dictionaries = require("../../../lib/dictionaries");
+var dictionaries = require("../../lib/dictionaries");
 
 var JPEN = React.createClass({
   statics: {
-    filters: require("./filters.jsx"),
-    entry: require("./entry.jsx"),
-    dictionary: dictionaries.jpen
+    search: function(term, processResults) {
+      dictionaries.jpen.search(term, function(data) {
+        JPEN.processResults(term, data, processResults);
+      });
+    },
+    processResults: function(term, resultset, callback) {
+      callback("jpen", {
+        term: term,
+        resultset: resultset
+      });
+    }
   },
 
   getInitialState: function() {
@@ -17,7 +25,7 @@ var JPEN = React.createClass({
   render: function() {
     var iprops = {
       value: this.state.searchterm,
-      onKeyDown: this.testSearch,
+      onKeyDown: this.testForSearch,
       onChange: this.updateSearchTerm
     };
     return (
@@ -28,7 +36,7 @@ var JPEN = React.createClass({
     );
   },
 
-  testSearch: function(evt) {
+  testForSearch: function(evt) {
     if (evt.keyCode===13) {
       this.startSearch();
     }
@@ -45,16 +53,7 @@ var JPEN = React.createClass({
   },
 
   search: function() {
-    JPEN.dictionary.search(this.state.searchterm, this.processResults);
-  },
-
-  processResults: function(resultset) {
-    this.props.processResults({
-      term: this.state.searchterm,
-      resultset: resultset,
-      filters: JPEN.filters,
-      entry: JPEN.entry
-    });
+    JPEN.search(this.state.searchterm, this.props.processResults);
   }
 });
 

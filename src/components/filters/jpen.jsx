@@ -1,5 +1,5 @@
 var React = require('react');
-var verbs = require("../../../lib/verbs");
+var verbs = require("../../lib/verbs");
 var adverbs = ["adv", "adv-to"];
 var adjectives = ["adj","adj-no","adj-na","adj-i"];
 

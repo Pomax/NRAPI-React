@@ -20446,19 +20446,17 @@
 
 	var React = __webpack_require__(1);
 
-	var Tabs = __webpack_require__(159);
-	var Results = __webpack_require__(180);
+	var Search = __webpack_require__(159);
+	var Results = __webpack_require__(175);
 
 	var API = React.createClass({
 	  displayName: 'API',
 
 	  getInitialState: function getInitialState() {
 	    return {
-	      tab: Tabs.defaultTab,
+	      dictionary: 'jpen',
 	      term: '',
 	      resultset: false,
-	      filters: false,
-	      entry: false,
 	      searching: false
 	    };
 	  },
@@ -20467,21 +20465,36 @@
 	    return React.createElement(
 	      'div',
 	      null,
-	      React.createElement(Tabs, { tab: this.state.tab, processResults: this.processResults, startSearch: this.startSearch }),
+	      React.createElement(Search, { ref: 'search',
+	        dictionary: this.state.dictionary,
+	        startSearch: this.startSearch,
+	        processResults: this.processResults }),
 	      this.state.searching ? React.createElement(
 	        'div',
 	        null,
 	        'searching...'
 	      ) : false,
-	      React.createElement(Results, { term: this.state.term, resultset: this.state.resultset, Filters: this.state.filters, Entry: this.state.entry })
+	      React.createElement(Results, { dictionary: this.state.dictionary,
+	        term: this.state.term,
+	        resultset: this.state.resultset,
+	        crosslink: this.crosslink })
 	    );
+	  },
+
+	  crosslink: function crosslink(content, dictionary) {
+	    var _this = this;
+
+	    this.startSearch(function () {
+	      return _this.refs.search.crosslinkSearch(content, dictionary);
+	    });
 	  },
 
 	  startSearch: function startSearch(callback) {
 	    this.setState({ searching: true }, callback());
 	  },
 
-	  processResults: function processResults(evt) {
+	  processResults: function processResults(dictionary, evt) {
+	    evt.dictionary = dictionary;
 	    evt.searching = false;
 	    this.setState(evt);
 	  }
@@ -20497,42 +20510,33 @@
 
 	var React = __webpack_require__(1);
 
-	var tabs = {
-	  JPEN: __webpack_require__(160),
-	  KANJI: __webpack_require__(171),
-	  GIONGO: __webpack_require__(174),
-	  NAMES: __webpack_require__(177)
-	};
+	var elements = __webpack_require__(160);
 
-	var Tabs = React.createClass({
-	  displayName: 'Tabs',
+	var Search = React.createClass({
+	  displayName: 'Search',
 
-	  statics: {
-	    defaultTab: 'JPEN',
-	    tabs: tabs
-	  },
-
-	  generateTabs: function generateTabs() {
-	    var _this = this;
-
-	    var keys = Object.keys(Tabs.tabs);
-	    return keys.map(function (tabname) {
-	      var Element = Tabs.tabs[tabname];
-	      return React.createElement(Element, { key: tabname, startSearch: _this.props.startSearch, processResults: _this.props.processResults });
-	    });
+	  componentWillMount: function componentWillMount() {
+	    this.handlers = {
+	      startSearch: this.props.startSearch,
+	      processResults: this.props.processResults
+	    };
 	  },
 
 	  render: function render() {
 	    return React.createElement(
 	      'div',
 	      null,
-	      this.generateTabs()
+	      elements.createAll('search', this.handlers)
 	    );
+	  },
+
+	  crosslinkSearch: function crosslinkSearch(term, dictionary) {
+	    elements.crosslinkSearch(term, dictionary, this.props.processResults);
 	  }
 
 	});
 
-	module.exports = Tabs;
+	module.exports = Search;
 
 /***/ },
 /* 160 */
@@ -20540,18 +20544,90 @@
 
 	"use strict";
 
+	var React = __webpack_require__(1);
+
+	var search = {
+	  jpen: __webpack_require__(161),
+
+	  kanji: __webpack_require__(168)
+	  // ,
+	  // giongo: require("./search/giongo.jsx")
+	  // ,
+	  // names: require("./search/names.jsx")
+	};
+
+	var filters = {
+	  jpen: __webpack_require__(169),
+
+	  kanji: __webpack_require__(171)
+	  // ,
+	  // giongo: require("./filters/giongo.jsx")
+	  // ,
+	  // names: require("./filters/names.jsx")
+	};
+
+	var entries = {
+	  jpen: __webpack_require__(172),
+
+	  kanji: __webpack_require__(174)
+	  // ,
+	  // giongo: require("./entries/giongo.jsx")
+	  // ,
+	  // names: require("./entries/names.jsx")
+	};
+
+	var keys = Object.keys(search);
+
+	var elements = {
+
+	  search: search,
+	  filters: filters,
+	  entries: entries,
+
+	  create: function create(type, dictionary, props) {
+	    var Element = elements[type][dictionary];
+	    return React.createElement(Element, props);
+	  },
+
+	  createAll: function createAll(type, props) {
+	    return keys.map(function (dictionary) {
+	      return elements.create(type, dictionary, props);
+	    });
+	  },
+
+	  crosslinkSearch: function crosslinkSearch(term, dictionary, processResults) {
+	    elements.search[dictionary].search(term, processResults);
+	  }
+	};
+
+	module.exports = elements;
+
+/***/ },
+/* 161 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
 	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 	var React = __webpack_require__(1);
-	var dictionaries = __webpack_require__(161);
+	var dictionaries = __webpack_require__(162);
 
 	var JPEN = React.createClass({
 	  displayName: "JPEN",
 
 	  statics: {
-	    filters: __webpack_require__(167),
-	    entry: __webpack_require__(169),
-	    dictionary: dictionaries.jpen
+	    search: function search(term, processResults) {
+	      dictionaries.jpen.search(term, function (data) {
+	        JPEN.processResults(term, data, processResults);
+	      });
+	    },
+	    processResults: function processResults(term, resultset, callback) {
+	      callback("jpen", {
+	        term: term,
+	        resultset: resultset
+	      });
+	    }
 	  },
 
 	  getInitialState: function getInitialState() {
@@ -20563,7 +20639,7 @@
 	  render: function render() {
 	    var iprops = {
 	      value: this.state.searchterm,
-	      onKeyDown: this.testSearch,
+	      onKeyDown: this.testForSearch,
 	      onChange: this.updateSearchTerm
 	    };
 	    return React.createElement(
@@ -20579,7 +20655,7 @@
 	    );
 	  },
 
-	  testSearch: function testSearch(evt) {
+	  testForSearch: function testForSearch(evt) {
 	    if (evt.keyCode === 13) {
 	      this.startSearch();
 	    }
@@ -20596,29 +20672,20 @@
 	  },
 
 	  search: function search() {
-	    JPEN.dictionary.search(this.state.searchterm, this.processResults);
-	  },
-
-	  processResults: function processResults(resultset) {
-	    this.props.processResults({
-	      term: this.state.searchterm,
-	      resultset: resultset,
-	      filters: JPEN.filters,
-	      entry: JPEN.entry
-	    });
+	    JPEN.search(this.state.searchterm, this.props.processResults);
 	  }
 	});
 
 	module.exports = JPEN;
 
 /***/ },
-/* 161 */
+/* 162 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
 
-	var REST = __webpack_require__(162);
-	var giongo = __webpack_require__(165);
+	var REST = __webpack_require__(163);
+	var giongo = __webpack_require__(166);
 
 	function restPoint(dictname) {
 	  return {
@@ -20658,15 +20725,15 @@
 	};
 
 /***/ },
-/* 162 */
+/* 163 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 
-	var Emitter = __webpack_require__(163);
-	var reduce = __webpack_require__(164);
+	var Emitter = __webpack_require__(164);
+	var reduce = __webpack_require__(165);
 
 	/**
 	 * Root reference for iframes.
@@ -21787,7 +21854,7 @@
 
 
 /***/ },
-/* 163 */
+/* 164 */
 /***/ function(module, exports) {
 
 	
@@ -21957,7 +22024,7 @@
 
 
 /***/ },
-/* 164 */
+/* 165 */
 /***/ function(module, exports) {
 
 	
@@ -21986,7 +22053,7 @@
 	};
 
 /***/ },
-/* 165 */
+/* 166 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -33689,7 +33756,7 @@
 	  }
 	};
 
-	var ime = __webpack_require__(166);
+	var ime = __webpack_require__(167);
 
 	var keys = Object.keys(definitions);
 
@@ -33750,7 +33817,7 @@
 
 
 /***/ },
-/* 166 */
+/* 167 */
 /***/ function(module, exports) {
 
 	var kanjiRange = /[\u3300-\u33FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/;
@@ -34296,13 +34363,96 @@
 
 
 /***/ },
-/* 167 */
+/* 168 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	var React = __webpack_require__(1);
+	var dictionaries = __webpack_require__(162);
+
+	var KANJI = React.createClass({
+	  displayName: "KANJI",
+
+	  statics: {
+	    search: function search(term, processResults) {
+	      dictionaries.kanji.search(term, function (data) {
+	        KANJI.processResults(term, data, processResults);
+	      });
+	    },
+	    processResults: function processResults(term, resultset, callback) {
+	      callback("kanji", {
+	        term: term,
+	        resultset: resultset
+	      });
+	    }
+	  },
+
+	  getInitialState: function getInitialState() {
+	    return {
+	      searchterm: "海"
+	    };
+	  },
+
+	  render: function render() {
+	    var iprops = {
+	      value: this.state.searchterm,
+	      onKeyDown: this.testForSearch,
+	      onChange: this.updateSearchTerm
+	    };
+
+	    //
+	    // TODO: allow queries on kanji, reading, meaning, or any of the numerical metadata.
+	    //
+	    // This will need a modeling refactor.
+	    //
+
+	    return React.createElement(
+	      "div",
+	      null,
+	      "Kanji search: ",
+	      React.createElement("input", _extends({ type: "text" }, iprops)),
+	      React.createElement(
+	        "button",
+	        { onClick: this.startSearch },
+	        "search kanji"
+	      )
+	    );
+	  },
+
+	  testForSearch: function testForSearch(evt) {
+	    if (evt.keyCode === 13) {
+	      this.startSearch();
+	    }
+	  },
+
+	  updateSearchTerm: function updateSearchTerm(evt) {
+	    this.setState({
+	      searchterm: evt.target.value
+	    });
+	  },
+
+	  startSearch: function startSearch() {
+	    this.props.startSearch(this.search);
+	  },
+
+	  search: function search() {
+	    KANJI.search(this.state.searchterm, this.props.processResults);
+	  }
+	});
+
+	module.exports = KANJI;
+
+/***/ },
+/* 169 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
 
 	var React = __webpack_require__(1);
-	var verbs = __webpack_require__(168);
+	var verbs = __webpack_require__(170);
 	var adverbs = ["adv", "adv-to"];
 	var adjectives = ["adj", "adj-no", "adj-na", "adj-i"];
 
@@ -34574,7 +34724,7 @@
 	module.exports = Filters;
 
 /***/ },
-/* 168 */
+/* 170 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -34588,14 +34738,166 @@
 	};
 
 /***/ },
-/* 169 */
+/* 171 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	var React = __webpack_require__(1);
+
+	var compare = {
+	  kana: function kana(a, b) {
+	    a = a.reb[0];
+	    b = b.reb[0];
+	    return a < b ? -1 : a > b ? 1 : 0;
+	  },
+	  kanji: function kanji(a, b) {
+	    a = a.keb ? a.keb[0] : a.reb[0];
+	    b = b.keb ? b.keb[0] : b.reb[0];
+	    return a < b ? 1 : -1;
+	  }
+	};
+
+	var Filters = React.createClass({
+	  displayName: "Filters",
+
+	  statics: {
+	    defaultState: {
+	      hideAll: false,
+	      romaji: false
+	    }
+	  },
+
+	  getInitialState: function getInitialState() {
+	    var initialState = Filters.defaultState;
+	    initialState.term = this.props.term;
+	    var settings = this.props.filterSettings || {};
+	    Object.keys(settings).forEach(function (v) {
+	      initialState[v] = settings[v];
+	    });
+	    return initialState;
+	  },
+
+	  componentDidMount: function componentDidMount() {
+	    this.filter();
+	  },
+
+	  componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
+	    if (this.props.term !== prevProps.term) {
+	      this.filter();
+	    }
+	  },
+
+	  render: function render() {
+	    return React.createElement(
+	      "div",
+	      null,
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "romaji: "
+	        ),
+	        React.createElement("input", { type: "checkbox", checked: this.state.romaji, onChange: this.toggle("romaji") })
+	      ),
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "sort on: "
+	        ),
+	        React.createElement(
+	          "select",
+	          { value: this.state.sorting, onChange: this.setSelection("sorting") },
+	          React.createElement(
+	            "option",
+	            { value: "kana" },
+	            "kana"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "kanji" },
+	            "kanji"
+	          )
+	        )
+	      ),
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "reverse sort: "
+	        ),
+	        React.createElement("input", { type: "checkbox", checked: this.state.revset, onChange: this.toggle("revsort") })
+	      )
+	    );
+	  },
+
+	  setSelection: function setSelection(name) {
+	    var _this = this;
+
+	    return function (evt) {
+	      var update = {};
+	      update[name] = evt.target.value;
+	      _this.setState(update, _this.filter);
+	    };
+	  },
+
+	  toggle: function toggle(name) {
+	    var _this2 = this;
+
+	    return function (evt) {
+	      var update = {};
+	      update[name] = !_this2.state[name];
+	      _this2.setState(update, function () {
+	        this.filter();
+	      });
+	    };
+	  },
+
+	  filter: function filter() {
+	    var resultset = this.props.resultset;
+	    var results = resultset.results.filter(function (e) {
+	      return !!e;
+	    });
+	    results.forEach(this.filterEntry);
+	    resultset.results = results.sort(this.sortEntries);
+	    this.props.onChange(this.state, resultset);
+	  },
+
+	  sortEntries: function sortEntries(a, b) {
+	    var cmp = compare[this.state.sorting](a, b);
+	    return this.state.revsort ? -cmp : cmp;
+	  },
+
+	  /**
+	   * This is the function that makes all the magic happen
+	   */
+	  filterEntry: function filterEntry(entry) {
+	    // selective UI filtering:
+	    entry.showRomaji = this.state.romaji;
+
+	    // integral visibility filtering:
+	    entry.hidden = this.state.hideAll;
+	  }
+	});
+
+	module.exports = Filters;
+
+/***/ },
+/* 172 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var React = __webpack_require__(1);
 
-	var romanise = __webpack_require__(170).romanise;
+	var romanise = __webpack_require__(173).romanise;
 
 	var Entry = React.createClass({
 	  displayName: 'Entry',
@@ -34607,9 +34909,8 @@
 	    }
 	  },
 
-	  generateReadings: function generateReadings(entry) {
-	    var reb = entry.reb;
-	    if (entry.showRomaji) {
+	  generateReadings: function generateReadings(reb, showRomaji) {
+	    if (showRomaji) {
 	      return reb.map(function (reading) {
 	        return React.createElement(
 	          'div',
@@ -34627,7 +34928,6 @@
 	        );
 	      });
 	    }
-
 	    return reb ? React.createElement(
 	      'span',
 	      null,
@@ -34635,12 +34935,51 @@
 	    ) : false;
 	  },
 
-	  crossLink: function crossLink(gloss) {
-	    return gloss.join(', ');
+	  searchKanji: function searchKanji(term) {
+	    var _this = this;
+
+	    return function () {
+	      _this.props.crosslink(term, 'kanji');
+	    };
+	  },
+
+	  generateKanjiForms: function generateKanjiForms(keb) {
+	    var _this2 = this;
+
+	    return keb.map(function (kanjiform) {
+	      var sep = kanjiform.split('');
+	      return sep.map(function (k) {
+	        return React.createElement(
+	          'span',
+	          { onClick: _this2.searchKanji(k) },
+	          k
+	        );
+	      });
+	    });
+	  },
+
+	  searchEnglish: function searchEnglish(term) {
+	    var _this3 = this;
+
+	    return function () {
+	      _this3.props.crosslink(term, 'jpen');
+	    };
+	  },
+
+	  crossLinkEnglish: function crossLinkEnglish(gloss) {
+	    var _this4 = this;
+
+	    return gloss.map(function (term) {
+	      return React.createElement(
+	        'span',
+	        { onClick: _this4.searchEnglish(term) },
+	        term
+	      );
+	    });
 	  },
 
 	  generateMeanings: function generateMeanings(entry) {
-	    var _this = this;
+	    var _this5 = this;
 
 	    var sense = entry.sense;
 	    if (!sense) return false;
@@ -34656,7 +34995,7 @@
 	      ), React.createElement(
 	        'div',
 	        null,
-	        _this.crossLink(gloss)
+	        _this5.crossLinkEnglish(gloss)
 	      )];
 	    });
 	  },
@@ -34670,13 +35009,13 @@
 	        'div',
 	        null,
 	        'reading: ',
-	        this.generateReadings(entry)
+	        this.generateReadings(entry.reb, entry.showRomaji)
 	      ),
 	      entry.keb && entry.keb.length > 0 ? React.createElement(
 	        'div',
 	        null,
 	        'kanji: ',
-	        entry.keb.join(', ')
+	        this.generateKanjiForms(entry.keb)
 	      ) : false,
 	      React.createElement(
 	        'div',
@@ -34691,7 +35030,7 @@
 	module.exports = Entry;
 
 /***/ },
-/* 170 */
+/* 173 */
 /***/ function(module, exports) {
 
 	// Always useful to have lying around
@@ -35243,376 +35582,14 @@
 
 
 /***/ },
-/* 171 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
-	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-	var React = __webpack_require__(1);
-	var dictionaries = __webpack_require__(161);
-
-	var KANJI = React.createClass({
-	  displayName: "KANJI",
-
-	  statics: {
-	    filters: __webpack_require__(172),
-	    entry: __webpack_require__(173),
-	    dictionary: dictionaries.kanji
-	  },
-
-	  getInitialState: function getInitialState() {
-	    return {
-	      searchterm: "海"
-	    };
-	  },
-
-	  render: function render() {
-	    var iprops = {
-	      value: this.state.searchterm,
-	      onKeyDown: this.testSearch,
-	      onChange: this.updateSearchTerm
-	    };
-
-	    //
-	    // TODO: allow queries on kanji, reading, meaning, or any of the numerical metadata.
-	    //
-	    // This will need a modeling refactor.
-	    //
-
-	    return React.createElement(
-	      "div",
-	      null,
-	      "Kanji search: ",
-	      React.createElement("input", _extends({ type: "text" }, iprops)),
-	      React.createElement(
-	        "button",
-	        { onClick: this.startSearch },
-	        "search kanji"
-	      )
-	    );
-	  },
-
-	  testSearch: function testSearch(evt) {
-	    if (evt.keyCode === 13) {
-	      this.startSearch();
-	    }
-	  },
-
-	  updateSearchTerm: function updateSearchTerm(evt) {
-	    this.setState({
-	      searchterm: evt.target.value
-	    });
-	  },
-
-	  startSearch: function startSearch() {
-	    this.props.startSearch(this.search);
-	  },
-
-	  search: function search() {
-	    KANJI.dictionary.search(this.state.searchterm, this.processResults);
-	  },
-
-	  processResults: function processResults(resultset) {
-	    this.props.processResults({
-	      term: this.state.searchterm,
-	      resultset: resultset,
-	      filters: KANJI.filters,
-	      entry: KANJI.entry
-	    });
-	  }
-	});
-
-	module.exports = KANJI;
-
-/***/ },
-/* 172 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
-	var React = __webpack_require__(1);
-	var verbs = __webpack_require__(168);
-	var adverbs = ["adv", "adv-to"];
-	var adjectives = ["adj", "adj-no", "adj-na", "adj-i"];
-
-	var compare = {
-	  kana: function kana(a, b) {
-	    a = a.reb[0];
-	    b = b.reb[0];
-	    return a < b ? -1 : a > b ? 1 : 0;
-	  },
-	  kanji: function kanji(a, b) {
-	    a = a.keb ? a.keb[0] : a.reb[0];
-	    b = b.keb ? b.keb[0] : b.reb[0];
-	    return a < b ? 1 : -1;
-	  }
-	};
-
-	var Filters = React.createClass({
-	  displayName: "Filters",
-
-	  statics: {
-	    defaultState: {
-	      hideAll: false,
-	      romaji: false,
-	      sorting: "kana",
-	      pos: "all"
-	    }
-	  },
-
-	  getInitialState: function getInitialState() {
-	    var initialState = Filters.defaultState;
-	    initialState.term = this.props.term;
-	    var settings = this.props.filterSettings || {};
-	    Object.keys(settings).forEach(function (v) {
-	      initialState[v] = settings[v];
-	    });
-	    return initialState;
-	  },
-
-	  componentDidMount: function componentDidMount() {
-	    this.filter();
-	  },
-
-	  componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
-	    if (this.props.term !== prevProps.term) {
-	      this.filter();
-	    }
-	  },
-
-	  render: function render() {
-	    return React.createElement(
-	      "div",
-	      null,
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "romaji: "
-	        ),
-	        React.createElement("input", { type: "checkbox", checked: this.state.romaji, onChange: this.toggle("romaji") })
-	      ),
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "sort on: "
-	        ),
-	        React.createElement(
-	          "select",
-	          { value: this.state.sorting, onChange: this.setSelection("sorting") },
-	          React.createElement(
-	            "option",
-	            { value: "kana" },
-	            "kana"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "kanji" },
-	            "kanji"
-	          )
-	        )
-	      ),
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "reverse sort: "
-	        ),
-	        React.createElement("input", { type: "checkbox", checked: this.state.revset, onChange: this.toggle("revsort") })
-	      ),
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "show: "
-	        ),
-	        React.createElement(
-	          "select",
-	          { value: this.state.pos, onChange: this.setSelection("pos") },
-	          React.createElement(
-	            "option",
-	            { value: "all" },
-	            "all results"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "v" },
-	            "├ verbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "v1" },
-	            "│ ├ ichidan verbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "v5" },
-	            "│ ├ godan verbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "vs" },
-	            "│ └ する verbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "n" },
-	            "├ nouns"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adj-no" },
-	            " │ └ の qualifier"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adj" },
-	            "├ adjectives"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adj-i" },
-	            "│ ├ い-adjectives"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adj-na" },
-	            " │ └ な-adjectives"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adv" },
-	            "├ adverbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adj-to" },
-	            " │ └ と adverbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "exp" },
-	            "└ expressions"
-	          )
-	        )
-	      )
-	    );
-	  },
-
-	  setSelection: function setSelection(name) {
-	    var _this = this;
-
-	    return function (evt) {
-	      var update = {};
-	      update[name] = evt.target.value;
-	      _this.setState(update, _this.filter);
-	    };
-	  },
-
-	  toggle: function toggle(name) {
-	    var _this2 = this;
-
-	    return function (evt) {
-	      var update = {};
-	      update[name] = !_this2.state[name];
-	      _this2.setState(update, function () {
-	        this.filter();
-	      });
-	    };
-	  },
-
-	  filter: function filter() {
-	    var resultset = this.props.resultset;
-	    var results = resultset.results.filter(function (e) {
-	      return !!e;
-	    });
-	    results.forEach(this.filterEntry);
-	    resultset.results = results.sort(this.sortEntries);
-	    this.props.onChange(this.state, resultset);
-	  },
-
-	  sortEntries: function sortEntries(a, b) {
-	    var cmp = compare[this.state.sorting](a, b);
-	    return this.state.revsort ? -cmp : cmp;
-	  },
-
-	  /**
-	   * This is the function that makes all the magic happen
-	   */
-	  filterEntry: function filterEntry(entry) {
-	    // selective UI filtering:
-	    entry.showRomaji = this.state.romaji;
-
-	    // integral visibility filtering:
-	    entry.hidden = this.state.hideAll;
-
-	    if (this.state.pos !== "all") {
-	      entry.hidden = !this.posMatch(this.state.pos, entry);
-	    }
-	  },
-
-	  /**
-	   * POS matching is a little hectic...
-	   */
-	  posMatch: function posMatch(pos, entry) {
-	    for (var i = 0, s; i < entry.sense.length; i++) {
-	      s = entry.sense[i];
-	      // verbs need a fair few checks
-	      if (pos === "v") {
-	        for (var j = 0, v; j < verbs.all.length; j++) {
-	          v = verbs.all[j];
-	          if (s.pos.indexOf(v) > -1) return true;
-	        }
-	      } else if (pos === "v1") {
-	        for (var j = 0, v; j < verbs.v1.length; j++) {
-	          v = verbs.v1[j];
-	          if (s.pos.indexOf(v) > -1) return true;
-	        }
-	      } else if (pos === "v5") {
-	        for (var j = 0, v; j < verbs.v5.length; j++) {
-	          v = verbs.v5[j];
-	          if (s.pos.indexOf(v) > -1) return true;
-	        }
-	      } else if (pos === "adj") {
-	        for (var j = 0, v; j < adjectives.length; j++) {
-	          v = adjectives[j];
-	          if (s.pos.indexOf(v) > -1) return true;
-	        }
-	      } else if (pos === "adv") {
-	        for (var j = 0, v; j < adverbs.length; j++) {
-	          v = adverbs[j];
-	          if (s.pos.indexOf(v) > -1) return true;
-	        }
-	      } else {
-	        if (s.pos.indexOf(pos) > -1) return true;
-	      }
-	    }
-	    return false;
-	  }
-	});
-
-	module.exports = Filters;
-
-/***/ },
-/* 173 */
+/* 174 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var React = __webpack_require__(1);
 
-	var romanise = __webpack_require__(170).romanise;
+	var romanise = __webpack_require__(173).romanise;
 
 	var Entry = React.createClass({
 	  displayName: 'Entry',
@@ -35624,9 +35601,14 @@
 	    }
 	  },
 
-	  generateReadings: function generateReadings(entry) {
-	    var reb = entry.readings;
-	    if (entry.showRomaji) {
+	  getInitialState: function getInitialState() {
+	    return {
+	      showHeader: true
+	    };
+	  },
+
+	  generateReadings: function generateReadings(reb, showRomaji) {
+	    if (showRomaji) {
 	      return reb.map(function (reading) {
 	        return React.createElement(
 	          'div',
@@ -35651,13 +35633,38 @@
 	    ) : false;
 	  },
 
-	  generateMeanings: function generateMeanings(entry) {
-	    var eng = entry.meanings;
+	  searchEnglish: function searchEnglish(term) {
+	    var _this = this;
+
+	    return function () {
+	      _this.props.crosslink(term, 'jpen');
+	    };
+	  },
+
+	  crossLinkEnglish: function crossLinkEnglish(gloss) {
+	    var _this2 = this;
+
+	    return gloss.map(function (term) {
+	      return React.createElement(
+	        'span',
+	        { onClick: _this2.searchEnglish(term) },
+	        term
+	      );
+	    });
+	  },
+
+	  generateMeanings: function generateMeanings(eng) {
 	    return React.createElement(
 	      'span',
 	      null,
-	      eng.join(', ')
+	      this.crossLinkEnglish(eng)
 	    );
+	  },
+
+	  killHeader: function killHeader() {
+	    this.setState({
+	      showHeader: false
+	    });
 	  },
 
 	  render: function render() {
@@ -35666,10 +35673,15 @@
 	      'div',
 	      { className: 'entry', hidden: this.props.hidden },
 	      React.createElement(
+	        'div',
+	        null,
+	        React.createElement('img', { src: 'http://localhost:6789/svg/' + entry.literal, onLoad: this.killHeader })
+	      ),
+	      this.state.showHeader ? React.createElement(
 	        'h1',
 	        null,
 	        entry.literal
-	      ),
+	      ) : false,
 	      React.createElement(
 	        'span',
 	        null,
@@ -35711,13 +35723,13 @@
 	        'div',
 	        null,
 	        'reading:  ',
-	        this.generateReadings(entry)
+	        this.generateReadings(entry.readings, entry.showRomaji)
 	      ),
 	      React.createElement(
 	        'div',
 	        null,
 	        'meanings: ',
-	        this.generateMeanings(entry)
+	        this.generateMeanings(entry.meanings)
 	      )
 	    );
 	  }
@@ -35725,90 +35737,6 @@
 	});
 
 	module.exports = Entry;
-
-/***/ },
-/* 174 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
-	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-	var React = __webpack_require__(1);
-	var dictionaries = __webpack_require__(161);
-
-	var GIONGO = React.createClass({
-	  displayName: "GIONGO",
-
-	  statics: {
-	    filters: __webpack_require__(175),
-	    entry: __webpack_require__(176),
-	    dictionary: dictionaries.giongo
-	  },
-
-	  getInitialState: function getInitialState() {
-	    return {
-	      searchterm: "ペラペラ"
-	    };
-	  },
-
-	  render: function render() {
-	    var iprops = {
-	      value: this.state.searchterm,
-	      onKeyDown: this.testSearch,
-	      onChange: this.updateSearchTerm
-	    };
-
-	    //
-	    // TODO: allow queries on kanji, reading, meaning, or any of the numerical metadata.
-	    //
-	    // This will need a modeling refactor.
-	    //
-
-	    return React.createElement(
-	      "div",
-	      null,
-	      "Sound words search: ",
-	      React.createElement("input", _extends({ type: "text" }, iprops)),
-	      React.createElement(
-	        "button",
-	        { onClick: this.startSearch },
-	        "search"
-	      )
-	    );
-	  },
-
-	  testSearch: function testSearch(evt) {
-	    if (evt.keyCode === 13) {
-	      this.startSearch();
-	    }
-	  },
-
-	  updateSearchTerm: function updateSearchTerm(evt) {
-	    this.setState({
-	      searchterm: evt.target.value
-	    });
-	  },
-
-	  startSearch: function startSearch() {
-	    this.props.startSearch(this.search);
-	  },
-
-	  search: function search() {
-	    GIONGO.dictionary.search(this.state.searchterm, this.processResults);
-	  },
-
-	  processResults: function processResults(resultset) {
-	    this.props.processResults({
-	      term: this.state.searchterm,
-	      resultset: resultset,
-	      filters: GIONGO.filters,
-	      entry: GIONGO.entry
-	    });
-	  }
-	});
-
-	module.exports = GIONGO;
 
 /***/ },
 /* 175 */
@@ -35816,171 +35744,28 @@
 
 	'use strict';
 
-	var React = __webpack_require__(1);
-
-	var Filters = React.createClass({
-	  displayName: 'Filters',
-
-	  render: function render() {
-	    return React.createElement(
-	      'div',
-	      null,
-	      'filters for gioingo and gitaigo'
-	    );
-	  }
-
-	});
-
-	module.exports = Filters;
-
-/***/ },
-/* 176 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
-	var React = __webpack_require__(1);
-	var ime = __webpack_require__(170);
-
-	var Entry = React.createClass({
-	  displayName: "Entry",
-
-	  render: function render() {
-	    var _this = this;
-
-	    var keys = Object.keys(this.props);
-	    keys.splice(keys.indexOf("id"), 1);
-	    var elements = keys.map(function (key) {
-	      return React.createElement(
-	        "div",
-	        null,
-	        key,
-	        ": ",
-	        _this.props[key].join(", ")
-	      );
-	    });
-
-	    var term = ime.convert(this.props.id);
-
-	    return React.createElement(
-	      "div",
-	      null,
-	      React.createElement(
-	        "div",
-	        null,
-	        term.katakana
-	      ),
-	      elements
-	    );
-	  }
-
-	});
-
-	module.exports = Entry;
-
-/***/ },
-/* 177 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
-	var React = __webpack_require__(1);
-
-	var NAMES = React.createClass({
-	  displayName: "NAMES",
-
-	  statics: {
-	    filters: __webpack_require__(178),
-	    entry: __webpack_require__(179)
-	  },
-
-	  render: function render() {
-	    return React.createElement(
-	      "div",
-	      null,
-	      "names"
-	    );
-	  }
-
-	});
-
-	module.exports = NAMES;
-
-/***/ },
-/* 178 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var React = __webpack_require__(1);
-
-	var Filters = React.createClass({
-	  displayName: 'Filters',
-
-	  render: function render() {
-	    return React.createElement(
-	      'div',
-	      null,
-	      'filters for names and places'
-	    );
-	  }
-
-	});
-
-	module.exports = Filters;
-
-/***/ },
-/* 179 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var React = __webpack_require__(1);
-
-	var Entry = React.createClass({
-	  displayName: 'Entry',
-
-	  render: function render() {
-	    return React.createElement(
-	      'div',
-	      null,
-	      'id: ',
-	      this.props.id,
-	      ', term: ',
-	      this.props.term
-	    );
-	  }
-
-	});
-
-	module.exports = Entry;
-
-/***/ },
-/* 180 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
 	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 	var React = __webpack_require__(1);
+	var elements = __webpack_require__(160);
 
 	var Results = React.createClass({
-	  displayName: "Results",
+	  displayName: 'Results',
 
-	  generateResults: function generateResults() {
-	    var Entry = this.props.Entry;
+	  generateResults: function generateResults(crosslink) {
+	    var Entry = elements.entries[this.props.dictionary];
 	    return this.props.resultset.results.map(function (e) {
-	      return React.createElement(Entry, _extends({ key: e.id }, e));
+	      return React.createElement(Entry, _extends({ key: e.id, crosslink: crosslink }, e));
 	    });
 	  },
 
 	  getFilters: function getFilters() {
-	    var Filters = this.props.Filters;
-	    return React.createElement(Filters, { term: this.props.term,
+	    return elements.create('filters', this.props.dictionary, {
+	      term: this.props.term,
 	      filterSettings: this.props.filterSettings,
 	      resultset: this.props.resultset,
-	      onChange: this.filterResults });
+	      onChange: this.filterResults
+	    });
 	  },
 
 	  filterResults: function filterResults(filterSettings, filterResult) {
@@ -35994,34 +35779,36 @@
 	    var resultset = this.props.resultset;
 	    if (!resultset) {
 	      return React.createElement(
-	        "div",
+	        'div',
 	        null,
-	        "results listing"
+	        'results listing'
 	      );
 	    }
 
+	    // get "visible" count after filtering
 	    var count = 0;
 	    resultset.results.forEach(function (e) {
 	      if (!e.hidden) count++;
 	    });
+
 	    return React.createElement(
-	      "div",
+	      'div',
 	      null,
 	      React.createElement(
-	        "h1",
-	        { className: "result counter" },
+	        'h1',
+	        { className: 'result counter' },
 	        count,
-	        " entries"
+	        ' entries'
 	      ),
 	      React.createElement(
-	        "div",
-	        { className: "filters" },
+	        'div',
+	        { className: 'filters' },
 	        this.getFilters()
 	      ),
 	      React.createElement(
-	        "div",
-	        { className: "entries" },
-	        this.generateResults()
+	        'div',
+	        { className: 'entries' },
+	        this.generateResults(this.props.crosslink)
 	      )
 	    );
 	  }

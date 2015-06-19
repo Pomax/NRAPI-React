@@ -1,16 +1,14 @@
 var React = require('react');
 
-var Tabs = require('./tabs/tabs.jsx');
-var Results = require('./results/results.jsx');
+var Search = require('./search.jsx');
+var Results = require('./results.jsx');
 
 var API = React.createClass({
   getInitialState: function() {
     return {
-      tab: Tabs.defaultTab,
+      dictionary: "jpen",
       term: "",
       resultset: false,
-      filters: false,
-      entry: false,
       searching: false
     };
   },
@@ -18,18 +16,31 @@ var API = React.createClass({
   render: function() {
     return (
       <div>
-        <Tabs tab={this.state.tab} processResults={this.processResults} startSearch={this.startSearch}/>
+        <Search ref="search"
+                dictionary={this.state.dictionary}
+                startSearch={this.startSearch}
+                processResults={this.processResults} />
+
         { this.state.searching ? <div>searching...</div> : false }
-        <Results term={this.state.term} resultset={this.state.resultset} Filters={this.state.filters} Entry={this.state.entry}/>
+
+        <Results dictionary={this.state.dictionary}
+                 term={this.state.term}
+                 resultset={this.state.resultset}
+                 crosslink={this.crosslink} />
       </div>
     );
+  },
+
+  crosslink: function(content, dictionary) {
+    this.startSearch(() => this.refs.search.crosslinkSearch(content, dictionary));
   },
 
   startSearch: function(callback) {
     this.setState({ searching: true }, callback());
   },
 
-  processResults: function(evt) {
+  processResults: function(dictionary, evt) {
+    evt.dictionary = dictionary;
     evt.searching = false
     this.setState(evt);
   }

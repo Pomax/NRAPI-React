@@ -10,9 +10,8 @@ var Entry = React.createClass({
     }
   },
 
-  generateReadings: function(entry) {
-    var reb = entry.reb;
-    if(entry.showRomaji) {
+  generateReadings: function(reb, showRomaji) {
+    if(showRomaji) {
       return reb.map(function(reading) {
         return (<div className="ruby">
           <div>{ romanise(reading) }</div>
@@ -20,12 +19,32 @@ var Entry = React.createClass({
         </div>);
       });
     }
-
     return reb ? <span>{ reb.join(", ") }</span> : false;
   },
 
-  crossLink: function(gloss) {
-    return gloss.join(", ");
+  searchKanji: function(term) {
+    return () => {
+      this.props.crosslink(term, "kanji");
+    };
+  },
+
+  generateKanjiForms: function(keb) {
+    return keb.map(kanjiform => {
+      var sep = kanjiform.split('');
+      return sep.map(k => <span onClick={this.searchKanji(k)}>{k}</span>);
+    });
+  },
+
+  searchEnglish: function(term) {
+    return () => {
+      this.props.crosslink(term, "jpen");
+    };
+  },
+
+  crossLinkEnglish: function(gloss) {
+    return gloss.map(term => {
+      return <span onClick={this.searchEnglish(term)}>{term}</span>
+    });
   },
 
   generateMeanings: function(entry) {
@@ -36,7 +55,7 @@ var Entry = React.createClass({
           gloss = s.gloss;
       return [
         pos.length === 0 ? false : <div>[{ pos.join(", ") }]</div>,
-        <div>{ this.crossLink(gloss) }</div>
+        <div>{ this.crossLinkEnglish(gloss) }</div>
       ];
     });
   },
@@ -45,8 +64,8 @@ var Entry = React.createClass({
     var entry = this.props;
     return (
       <div className="entry" hidden={this.props.hidden}>
-        <div>reading: { this.generateReadings(entry) }</div>
-        { entry.keb && entry.keb.length > 0 ? <div>kanji: { entry.keb.join(", ") }</div> : false }
+        <div>reading: { this.generateReadings(entry.reb, entry.showRomaji) }</div>
+        { entry.keb && entry.keb.length > 0 ? <div>kanji: { this.generateKanjiForms(entry.keb) }</div> : false }
         <div>{ this.generateMeanings(entry) }</div>
       </div>
     );

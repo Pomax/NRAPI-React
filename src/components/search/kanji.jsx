@@ -1,11 +1,19 @@
 var React = require('react');
-var dictionaries = require("../../../lib/dictionaries");
+var dictionaries = require("../../lib/dictionaries");
 
 var KANJI = React.createClass({
   statics: {
-    filters: require("./filters.jsx"),
-    entry: require("./entry.jsx"),
-    dictionary: dictionaries.kanji
+    search: function(term, processResults) {
+      dictionaries.kanji.search(term, function(data) {
+        KANJI.processResults(term, data, processResults);
+      });
+    },
+    processResults: function(term, resultset, callback) {
+      callback("kanji", {
+        term: term,
+        resultset: resultset
+      });
+    }
   },
 
   getInitialState: function() {
@@ -17,7 +25,7 @@ var KANJI = React.createClass({
   render: function() {
     var iprops = {
       value: this.state.searchterm,
-      onKeyDown: this.testSearch,
+      onKeyDown: this.testForSearch,
       onChange: this.updateSearchTerm
     };
 
@@ -35,7 +43,7 @@ var KANJI = React.createClass({
     );
   },
 
-  testSearch: function(evt) {
+  testForSearch: function(evt) {
     if (evt.keyCode===13) {
       this.startSearch();
     }
@@ -52,16 +60,7 @@ var KANJI = React.createClass({
   },
 
   search: function() {
-    KANJI.dictionary.search(this.state.searchterm, this.processResults);
-  },
-
-  processResults: function(resultset) {
-    this.props.processResults({
-      term: this.state.searchterm,
-      resultset: resultset,
-      filters: KANJI.filters,
-      entry: KANJI.entry
-    });
+    KANJI.search(this.state.searchterm, this.props.processResults);
   }
 });
 
