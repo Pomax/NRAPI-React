@@ -9,10 +9,10 @@ The kanji is expected to be a plain unicode kanji (utf8), and the output takes a
 
 Fonts obviously not included for licensing reasons, but I'm currently using:
 
-- handwriting: きろ字 (free)
-- textbook: Epson Kyokasho (free)
-- minchou: Ume Mincho M3 (free, sourceforge)
-- gothic: Ume Gothic C4 (free, sourceforge)
+- handwriting: きろ字 (freely available, although the original site for it vanished)
+- textbook: Epson Kyokasho (freely available on http://www.epson.jp/download2/printer/driver/win/page/ttf30.htm)
+- minchou: Ume Mincho M3 (freely available on http://osdn.jp/projects/ume-font)
+- gothic: Ume Gothic C4 (idem dito)
 - gyousho: NIS AYA (JTC淡斎行書「彩」, http://www.nisfont.co.jp/extra/index_hissho.html, sold everywhere)) 
 - sousho: NIS KOI (JTC淡斎草書「濃」, http://www.nisfont.co.jp/extra/index_hissho.html, sold everywhere))
 - block: Arphic Reisho Medium JIS2004 (http://www.arphic.com/usa/fontgallery/jis_6.htm, sold everywhere)
