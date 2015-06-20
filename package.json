@@ -9,7 +9,8 @@
     "build:webpack": "webpack --progress --colors --watch",
     "build": "npm run build:pre && parallelshell \"npm run build:css\" \"npm run build:webpack\"",
     "run:server": "node server/app.js",
-    "start": "parallelshell \"npm run run:server\" \"npm run build\" \"live-server public\""
+    "run:fontserver": "node fontserver/app.js",
+    "start": "parallelshell \"npm run run:server\" \"npm run run:fontserver\" \"npm run build\" \"live-server public\""
   },
   "repository": {
     "type": "git",
