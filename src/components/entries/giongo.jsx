@@ -4,8 +4,9 @@ var ime = require("jp-conversion");
 var Entry = React.createClass({
 
   render: function() {
-    var keys = Object.keys(this.props);
+    var keys = Object.keys(this.props).slice();
     keys.splice(keys.indexOf("id"),1);
+    keys.splice(keys.indexOf("crosslink"),1);
     var elements = keys.map(key => {
       return <div>{key}: {this.props[key].join(", ")}</div>;
     })

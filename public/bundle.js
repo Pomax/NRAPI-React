@@ -20447,7 +20447,7 @@
 	var React = __webpack_require__(1);
 
 	var Search = __webpack_require__(159);
-	var Results = __webpack_require__(175);
+	var Results = __webpack_require__(180);
 
 	var API = React.createClass({
 	  displayName: 'API',
@@ -20547,31 +20547,31 @@
 	var React = __webpack_require__(1);
 
 	var search = {
-	  jpen: __webpack_require__(161),
+	  jpen: __webpack_require__(162),
 
-	  kanji: __webpack_require__(168)
-	  // ,
-	  // giongo: require("./search/giongo.jsx")
+	  kanji: __webpack_require__(171),
+
+	  giongo: __webpack_require__(173)
 	  // ,
 	  // names: require("./search/names.jsx")
 	};
 
 	var filters = {
-	  jpen: __webpack_require__(169),
+	  jpen: __webpack_require__(174),
 
-	  kanji: __webpack_require__(171)
-	  // ,
-	  // giongo: require("./filters/giongo.jsx")
+	  kanji: __webpack_require__(161),
+
+	  giongo: __webpack_require__(176)
 	  // ,
 	  // names: require("./filters/names.jsx")
 	};
 
 	var entries = {
-	  jpen: __webpack_require__(172),
+	  jpen: __webpack_require__(177),
 
-	  kanji: __webpack_require__(174)
-	  // ,
-	  // giongo: require("./entries/giongo.jsx")
+	  kanji: __webpack_require__(178),
+
+	  giongo: __webpack_require__(179)
 	  // ,
 	  // names: require("./entries/names.jsx")
 	};
@@ -20608,10 +20608,186 @@
 
 	"use strict";
 
+	var React = __webpack_require__(1);
+
+	var compare = {
+	  kanji: function kanji(a, b) {
+	    a = a.literal;
+	    b = b.literal;
+	    return a < b ? -1 : 1;
+	  },
+	  grade: function grade(a, b) {
+	    a = parseInt(a.grade || 100);
+	    b = parseInt(b.grade || 100);
+	    return a < b ? -1 : a > b ? 1 : compare.kanji(a, b);
+	  },
+	  jlpt: function jlpt(a, b) {
+	    a = parseInt(a.jlpt || 0);
+	    b = parseInt(b.jlpt || 0);
+	    return a < b ? 1 : a > b ? -1 : compare.kanji(a, b);
+	  },
+	  strokeCount: function strokeCount(a, b) {
+	    var _a = parseInt(a.strokeCount);
+	    var _b = parseInt(b.strokeCount);
+	    return _a < _b ? -1 : _a > _b ? 1 : compare.kanji(a, b);
+	  }
+	};
+
+	var Filters = React.createClass({
+	  displayName: "Filters",
+
+	  statics: {
+	    defaultState: {
+	      hideAll: false,
+	      romaji: false,
+	      sorting: "kanji"
+	    }
+	  },
+
+	  getInitialState: function getInitialState() {
+	    var initialState = Filters.defaultState;
+	    initialState.term = this.props.term;
+	    var settings = this.props.filterSettings || {};
+	    Object.keys(settings).forEach(function (v) {
+	      initialState[v] = settings[v];
+	    });
+	    return initialState;
+	  },
+
+	  componentDidMount: function componentDidMount() {
+	    this.filter();
+	  },
+
+	  componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
+	    if (this.props.term !== prevProps.term) {
+	      this.filter();
+	    }
+	  },
+
+	  render: function render() {
+	    return React.createElement(
+	      "div",
+	      null,
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "romaji: "
+	        ),
+	        React.createElement("input", { type: "checkbox", checked: this.state.romaji, onChange: this.toggle("romaji") })
+	      ),
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "sort on: "
+	        ),
+	        React.createElement(
+	          "select",
+	          { value: this.state.sorting, onChange: this.setSelection("sorting") },
+	          React.createElement(
+	            "option",
+	            { value: "kanji" },
+	            "kanji"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "strokeCount" },
+	            "strokeCount"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "grade" },
+	            "grade"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "jlpt" },
+	            "jlpt"
+	          )
+	        )
+	      ),
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "reverse sort: "
+	        ),
+	        React.createElement("input", { type: "checkbox", checked: this.state.revset, onChange: this.toggle("revsort") })
+	      )
+	    );
+	  },
+
+	  setSelection: function setSelection(name) {
+	    var _this = this;
+
+	    return function (evt) {
+	      var update = {};
+	      update[name] = evt.target.value;
+	      _this.setState(update, _this.filter);
+	    };
+	  },
+
+	  toggle: function toggle(name) {
+	    var _this2 = this;
+
+	    return function (evt) {
+	      var update = {};
+	      update[name] = !_this2.state[name];
+	      _this2.setState(update, function () {
+	        this.filter();
+	      });
+	    };
+	  },
+
+	  filter: function filter() {
+	    var resultset = this.props.resultset;
+	    var results = resultset.results.filter(function (e) {
+	      return !!e;
+	    });
+	    results.forEach(this.filterEntry);
+	    resultset.results = results.sort(this.sortEntries);
+	    this.props.onChange(this.state, resultset);
+	  },
+
+	  sortEntries: function sortEntries(a, b) {
+	    var cmp = compare[this.state.sorting](a, b);
+	    return this.state.revsort ? -cmp : cmp;
+	  },
+
+	  /**
+	   * This is the function that makes all the magic happen
+	   */
+	  filterEntry: function filterEntry(entry) {
+	    // selective UI filtering:
+	    entry.showRomaji = this.state.romaji;
+
+	    // integral visibility filtering:
+	    entry.hidden = this.state.hideAll;
+	  }
+	});
+
+	module.exports = Filters;
+
+/***/ },
+/* 162 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
 	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 	var React = __webpack_require__(1);
-	var dictionaries = __webpack_require__(162);
+	var dictionaries = __webpack_require__(163);
+
+	var ime = __webpack_require__(169);
+	var verbs = __webpack_require__(170);
 
 	var JPEN = React.createClass({
 	  displayName: "JPEN",
@@ -20632,7 +20808,8 @@
 
 	  getInitialState: function getInitialState() {
 	    return {
-	      searchterm: "chicken"
+	      searchterm: "chicken",
+	      verbForms: []
 	    };
 	  },
 
@@ -20651,7 +20828,32 @@
 	        "button",
 	        { onClick: this.startSearch },
 	        "search jpen"
-	      )
+	      ),
+	      this.state.verbForms.length > 0 ? this.showVerbSuggestion() : false
+	    );
+	  },
+
+	  showVerbSuggestion: function showVerbSuggestion() {
+	    var glue = " form of the ";
+	    var suggestions = this.state.verbForms.map(function (e) {
+	      return React.createElement(
+	        "div",
+	        null,
+	        "possible ",
+	        e.form.join(glue),
+	        glue,
+	        "verb",
+	        React.createElement(
+	          "span",
+	          { onClick: false },
+	          e.word
+	        )
+	      );
+	    });
+	    return React.createElement(
+	      "div",
+	      null,
+	      suggestions
 	    );
 	  },
 
@@ -20661,9 +20863,34 @@
 	    }
 	  },
 
+	  testVerbForm: function testVerbForm(value) {
+	    var forms = [];
+	    var conversion = ime.convert(value);
+	    if (conversion) {
+	      var test = verbs.unconjugate(conversion.hiragana);
+	      if (test.length > 0) {
+	        // find forms
+	        (function ff(list) {
+	          if (list[0].map) {
+	            return list.forEach(function (sublist) {
+	              return ff(sublist);
+	            });
+	          }
+	          var entry = list.slice(-1)[0];
+	          entry.form = list.map(function (e) {
+	            return e.found;
+	          });
+	          forms.push(entry);
+	        })(test);
+	      }
+	    }
+	    return forms;
+	  },
+
 	  updateSearchTerm: function updateSearchTerm(evt) {
 	    this.setState({
-	      searchterm: evt.target.value
+	      searchterm: evt.target.value,
+	      verbForms: this.testVerbForm(evt.target.value)
 	    });
 	  },
 
@@ -20679,13 +20906,13 @@
 	module.exports = JPEN;
 
 /***/ },
-/* 162 */
+/* 163 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
 
-	var REST = __webpack_require__(163);
-	var giongo = __webpack_require__(166);
+	var REST = __webpack_require__(164);
+	var giongo = __webpack_require__(167);
 
 	function restPoint(dictname) {
 	  return {
@@ -20725,15 +20952,15 @@
 	};
 
 /***/ },
-/* 163 */
+/* 164 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
 	 * Module dependencies.
 	 */
 
-	var Emitter = __webpack_require__(164);
-	var reduce = __webpack_require__(165);
+	var Emitter = __webpack_require__(165);
+	var reduce = __webpack_require__(166);
 
 	/**
 	 * Root reference for iframes.
@@ -21854,7 +22081,7 @@
 
 
 /***/ },
-/* 164 */
+/* 165 */
 /***/ function(module, exports) {
 
 	
@@ -22024,7 +22251,7 @@
 
 
 /***/ },
-/* 165 */
+/* 166 */
 /***/ function(module, exports) {
 
 	
@@ -22053,7 +22280,7 @@
 	};
 
 /***/ },
-/* 166 */
+/* 167 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -33756,7 +33983,7 @@
 	  }
 	};
 
-	var ime = __webpack_require__(167);
+	var ime = __webpack_require__(168);
 
 	var keys = Object.keys(definitions);
 
@@ -33817,7 +34044,7 @@
 
 
 /***/ },
-/* 167 */
+/* 168 */
 /***/ function(module, exports) {
 
 	var kanjiRange = /[\u3300-\u33FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/;
@@ -34363,674 +34590,7 @@
 
 
 /***/ },
-/* 168 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
-	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
-
-	var React = __webpack_require__(1);
-	var dictionaries = __webpack_require__(162);
-
-	var KANJI = React.createClass({
-	  displayName: "KANJI",
-
-	  statics: {
-	    search: function search(term, processResults) {
-	      dictionaries.kanji.search(term, function (data) {
-	        KANJI.processResults(term, data, processResults);
-	      });
-	    },
-	    processResults: function processResults(term, resultset, callback) {
-	      callback("kanji", {
-	        term: term,
-	        resultset: resultset
-	      });
-	    }
-	  },
-
-	  getInitialState: function getInitialState() {
-	    return {
-	      searchterm: "海"
-	    };
-	  },
-
-	  render: function render() {
-	    var iprops = {
-	      value: this.state.searchterm,
-	      onKeyDown: this.testForSearch,
-	      onChange: this.updateSearchTerm
-	    };
-
-	    //
-	    // TODO: allow queries on kanji, reading, meaning, or any of the numerical metadata.
-	    //
-	    // This will need a modeling refactor.
-	    //
-
-	    return React.createElement(
-	      "div",
-	      null,
-	      "Kanji search: ",
-	      React.createElement("input", _extends({ type: "text" }, iprops)),
-	      React.createElement(
-	        "button",
-	        { onClick: this.startSearch },
-	        "search kanji"
-	      )
-	    );
-	  },
-
-	  testForSearch: function testForSearch(evt) {
-	    if (evt.keyCode === 13) {
-	      this.startSearch();
-	    }
-	  },
-
-	  updateSearchTerm: function updateSearchTerm(evt) {
-	    this.setState({
-	      searchterm: evt.target.value
-	    });
-	  },
-
-	  startSearch: function startSearch() {
-	    this.props.startSearch(this.search);
-	  },
-
-	  search: function search() {
-	    KANJI.search(this.state.searchterm, this.props.processResults);
-	  }
-	});
-
-	module.exports = KANJI;
-
-/***/ },
 /* 169 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
-	var React = __webpack_require__(1);
-	var verbs = __webpack_require__(170);
-	var adverbs = ["adv", "adv-to"];
-	var adjectives = ["adj", "adj-no", "adj-na", "adj-i"];
-
-	var compare = {
-	  kana: function kana(a, b) {
-	    a = a.reb[0];
-	    b = b.reb[0];
-	    return a < b ? -1 : a > b ? 1 : 0;
-	  },
-	  kanji: function kanji(a, b) {
-	    a = a.keb ? a.keb[0] : a.reb[0];
-	    b = b.keb ? b.keb[0] : b.reb[0];
-	    return a < b ? 1 : -1;
-	  }
-	};
-
-	var Filters = React.createClass({
-	  displayName: "Filters",
-
-	  statics: {
-	    defaultState: {
-	      hideAll: false,
-	      romaji: false,
-	      sorting: "kana",
-	      pos: "all"
-	    }
-	  },
-
-	  getInitialState: function getInitialState() {
-	    var initialState = Filters.defaultState;
-	    initialState.term = this.props.term;
-	    var settings = this.props.filterSettings || {};
-	    Object.keys(settings).forEach(function (v) {
-	      initialState[v] = settings[v];
-	    });
-	    return initialState;
-	  },
-
-	  componentDidMount: function componentDidMount() {
-	    this.filter();
-	  },
-
-	  componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
-	    if (this.props.term !== prevProps.term) {
-	      this.filter();
-	    }
-	  },
-
-	  render: function render() {
-	    return React.createElement(
-	      "div",
-	      null,
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "romaji: "
-	        ),
-	        React.createElement("input", { type: "checkbox", checked: this.state.romaji, onChange: this.toggle("romaji") })
-	      ),
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "sort on: "
-	        ),
-	        React.createElement(
-	          "select",
-	          { value: this.state.sorting, onChange: this.setSelection("sorting") },
-	          React.createElement(
-	            "option",
-	            { value: "kana" },
-	            "kana"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "kanji" },
-	            "kanji"
-	          )
-	        )
-	      ),
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "reverse sort: "
-	        ),
-	        React.createElement("input", { type: "checkbox", checked: this.state.revset, onChange: this.toggle("revsort") })
-	      ),
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "show: "
-	        ),
-	        React.createElement(
-	          "select",
-	          { value: this.state.pos, onChange: this.setSelection("pos") },
-	          React.createElement(
-	            "option",
-	            { value: "all" },
-	            "all results"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "v" },
-	            "├ verbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "v1" },
-	            "│ ├ ichidan verbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "v5" },
-	            "│ ├ godan verbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "vs" },
-	            "│ └ する verbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "n" },
-	            "├ nouns"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adj-no" },
-	            " │ └ の qualifier"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adj" },
-	            "├ adjectives"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adj-i" },
-	            "│ ├ い-adjectives"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adj-na" },
-	            " │ └ な-adjectives"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adv" },
-	            "├ adverbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "adj-to" },
-	            " │ └ と adverbs"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "exp" },
-	            "└ expressions"
-	          )
-	        )
-	      )
-	    );
-	  },
-
-	  setSelection: function setSelection(name) {
-	    var _this = this;
-
-	    return function (evt) {
-	      var update = {};
-	      update[name] = evt.target.value;
-	      _this.setState(update, _this.filter);
-	    };
-	  },
-
-	  toggle: function toggle(name) {
-	    var _this2 = this;
-
-	    return function (evt) {
-	      var update = {};
-	      update[name] = !_this2.state[name];
-	      _this2.setState(update, function () {
-	        this.filter();
-	      });
-	    };
-	  },
-
-	  filter: function filter() {
-	    var resultset = this.props.resultset;
-	    var results = resultset.results.filter(function (e) {
-	      return !!e;
-	    });
-	    results.forEach(this.filterEntry);
-	    resultset.results = results.sort(this.sortEntries);
-	    this.props.onChange(this.state, resultset);
-	  },
-
-	  sortEntries: function sortEntries(a, b) {
-	    var cmp = compare[this.state.sorting](a, b);
-	    return this.state.revsort ? -cmp : cmp;
-	  },
-
-	  /**
-	   * This is the function that makes all the magic happen
-	   */
-	  filterEntry: function filterEntry(entry) {
-	    // selective UI filtering:
-	    entry.showRomaji = this.state.romaji;
-
-	    // integral visibility filtering:
-	    entry.hidden = this.state.hideAll;
-
-	    if (this.state.pos !== "all") {
-	      entry.hidden = !this.posMatch(this.state.pos, entry);
-	    }
-	  },
-
-	  /**
-	   * POS matching is a little hectic...
-	   */
-	  posMatch: function posMatch(pos, entry) {
-	    for (var i = 0, s; i < entry.sense.length; i++) {
-	      s = entry.sense[i];
-	      // verbs need a fair few checks
-	      if (pos === "v") {
-	        for (var j = 0, v; j < verbs.all.length; j++) {
-	          v = verbs.all[j];
-	          if (s.pos.indexOf(v) > -1) return true;
-	        }
-	      } else if (pos === "v1") {
-	        for (var j = 0, v; j < verbs.v1.length; j++) {
-	          v = verbs.v1[j];
-	          if (s.pos.indexOf(v) > -1) return true;
-	        }
-	      } else if (pos === "v5") {
-	        for (var j = 0, v; j < verbs.v5.length; j++) {
-	          v = verbs.v5[j];
-	          if (s.pos.indexOf(v) > -1) return true;
-	        }
-	      } else if (pos === "adj") {
-	        for (var j = 0, v; j < adjectives.length; j++) {
-	          v = adjectives[j];
-	          if (s.pos.indexOf(v) > -1) return true;
-	        }
-	      } else if (pos === "adv") {
-	        for (var j = 0, v; j < adverbs.length; j++) {
-	          v = adverbs[j];
-	          if (s.pos.indexOf(v) > -1) return true;
-	        }
-	      } else {
-	        if (s.pos.indexOf(pos) > -1) return true;
-	      }
-	    }
-	    return false;
-	  }
-	});
-
-	module.exports = Filters;
-
-/***/ },
-/* 170 */
-/***/ function(module, exports) {
-
-	"use strict";
-
-	var all = ["v1", "v1-s", "v2a-s", "v4h", "v4r", "v5b", "v5g", "v5k", "v5k-s", "v5m", "v5n", "v5r", "v5r-i", "v5s", "v5t", "v5u", "v5u-s", "v5uru", "vz", "vi", "vk", "vn", "vr", "vs", "vs-c", "vs-s", "vs-i"];
-
-	module.exports = {
-	  all: all,
-	  v1: all.slice(0, 2),
-	  v5: all.slice(5, 18)
-	};
-
-/***/ },
-/* 171 */
-/***/ function(module, exports, __webpack_require__) {
-
-	"use strict";
-
-	var React = __webpack_require__(1);
-
-	var compare = {
-	  kana: function kana(a, b) {
-	    a = a.reb[0];
-	    b = b.reb[0];
-	    return a < b ? -1 : a > b ? 1 : 0;
-	  },
-	  kanji: function kanji(a, b) {
-	    a = a.keb ? a.keb[0] : a.reb[0];
-	    b = b.keb ? b.keb[0] : b.reb[0];
-	    return a < b ? 1 : -1;
-	  }
-	};
-
-	var Filters = React.createClass({
-	  displayName: "Filters",
-
-	  statics: {
-	    defaultState: {
-	      hideAll: false,
-	      romaji: false
-	    }
-	  },
-
-	  getInitialState: function getInitialState() {
-	    var initialState = Filters.defaultState;
-	    initialState.term = this.props.term;
-	    var settings = this.props.filterSettings || {};
-	    Object.keys(settings).forEach(function (v) {
-	      initialState[v] = settings[v];
-	    });
-	    return initialState;
-	  },
-
-	  componentDidMount: function componentDidMount() {
-	    this.filter();
-	  },
-
-	  componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
-	    if (this.props.term !== prevProps.term) {
-	      this.filter();
-	    }
-	  },
-
-	  render: function render() {
-	    return React.createElement(
-	      "div",
-	      null,
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "romaji: "
-	        ),
-	        React.createElement("input", { type: "checkbox", checked: this.state.romaji, onChange: this.toggle("romaji") })
-	      ),
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "sort on: "
-	        ),
-	        React.createElement(
-	          "select",
-	          { value: this.state.sorting, onChange: this.setSelection("sorting") },
-	          React.createElement(
-	            "option",
-	            { value: "kana" },
-	            "kana"
-	          ),
-	          React.createElement(
-	            "option",
-	            { value: "kanji" },
-	            "kanji"
-	          )
-	        )
-	      ),
-	      React.createElement(
-	        "fieldset",
-	        null,
-	        React.createElement(
-	          "label",
-	          null,
-	          "reverse sort: "
-	        ),
-	        React.createElement("input", { type: "checkbox", checked: this.state.revset, onChange: this.toggle("revsort") })
-	      )
-	    );
-	  },
-
-	  setSelection: function setSelection(name) {
-	    var _this = this;
-
-	    return function (evt) {
-	      var update = {};
-	      update[name] = evt.target.value;
-	      _this.setState(update, _this.filter);
-	    };
-	  },
-
-	  toggle: function toggle(name) {
-	    var _this2 = this;
-
-	    return function (evt) {
-	      var update = {};
-	      update[name] = !_this2.state[name];
-	      _this2.setState(update, function () {
-	        this.filter();
-	      });
-	    };
-	  },
-
-	  filter: function filter() {
-	    var resultset = this.props.resultset;
-	    var results = resultset.results.filter(function (e) {
-	      return !!e;
-	    });
-	    results.forEach(this.filterEntry);
-	    resultset.results = results.sort(this.sortEntries);
-	    this.props.onChange(this.state, resultset);
-	  },
-
-	  sortEntries: function sortEntries(a, b) {
-	    var cmp = compare[this.state.sorting](a, b);
-	    return this.state.revsort ? -cmp : cmp;
-	  },
-
-	  /**
-	   * This is the function that makes all the magic happen
-	   */
-	  filterEntry: function filterEntry(entry) {
-	    // selective UI filtering:
-	    entry.showRomaji = this.state.romaji;
-
-	    // integral visibility filtering:
-	    entry.hidden = this.state.hideAll;
-	  }
-	});
-
-	module.exports = Filters;
-
-/***/ },
-/* 172 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var React = __webpack_require__(1);
-
-	var romanise = __webpack_require__(173).romanise;
-
-	var Entry = React.createClass({
-	  displayName: 'Entry',
-
-	  statics: {
-	    rt: {
-	      alignContent: 'center',
-	      rubyAlign: 'center'
-	    }
-	  },
-
-	  generateReadings: function generateReadings(reb, showRomaji) {
-	    if (showRomaji) {
-	      return reb.map(function (reading) {
-	        return React.createElement(
-	          'div',
-	          { className: 'ruby' },
-	          React.createElement(
-	            'div',
-	            null,
-	            romanise(reading)
-	          ),
-	          React.createElement(
-	            'div',
-	            null,
-	            reading
-	          )
-	        );
-	      });
-	    }
-	    return reb ? React.createElement(
-	      'span',
-	      null,
-	      reb.join(', ')
-	    ) : false;
-	  },
-
-	  searchKanji: function searchKanji(term) {
-	    var _this = this;
-
-	    return function () {
-	      _this.props.crosslink(term, 'kanji');
-	    };
-	  },
-
-	  generateKanjiForms: function generateKanjiForms(keb) {
-	    var _this2 = this;
-
-	    return keb.map(function (kanjiform) {
-	      var sep = kanjiform.split('');
-	      return sep.map(function (k) {
-	        return React.createElement(
-	          'span',
-	          { onClick: _this2.searchKanji(k) },
-	          k
-	        );
-	      });
-	    });
-	  },
-
-	  searchEnglish: function searchEnglish(term) {
-	    var _this3 = this;
-
-	    return function () {
-	      _this3.props.crosslink(term, 'jpen');
-	    };
-	  },
-
-	  crossLinkEnglish: function crossLinkEnglish(gloss) {
-	    var _this4 = this;
-
-	    return gloss.map(function (term) {
-	      return React.createElement(
-	        'span',
-	        { onClick: _this4.searchEnglish(term) },
-	        term
-	      );
-	    });
-	  },
-
-	  generateMeanings: function generateMeanings(entry) {
-	    var _this5 = this;
-
-	    var sense = entry.sense;
-	    if (!sense) return false;
-	    return sense.map(function (s) {
-	      var pos = s.pos,
-	          gloss = s.gloss;
-	      return [pos.length === 0 ? false : React.createElement(
-	        'div',
-	        null,
-	        '[',
-	        pos.join(', '),
-	        ']'
-	      ), React.createElement(
-	        'div',
-	        null,
-	        _this5.crossLinkEnglish(gloss)
-	      )];
-	    });
-	  },
-
-	  render: function render() {
-	    var entry = this.props;
-	    return React.createElement(
-	      'div',
-	      { className: 'entry', hidden: this.props.hidden },
-	      React.createElement(
-	        'div',
-	        null,
-	        'reading: ',
-	        this.generateReadings(entry.reb, entry.showRomaji)
-	      ),
-	      entry.keb && entry.keb.length > 0 ? React.createElement(
-	        'div',
-	        null,
-	        'kanji: ',
-	        this.generateKanjiForms(entry.keb)
-	      ) : false,
-	      React.createElement(
-	        'div',
-	        null,
-	        this.generateMeanings(entry)
-	      )
-	    );
-	  }
-
-	});
-
-	module.exports = Entry;
-
-/***/ },
-/* 173 */
 /***/ function(module, exports) {
 
 	// Always useful to have lying around
@@ -35582,14 +35142,747 @@
 
 
 /***/ },
+/* 170 */
+/***/ function(module, exports) {
+
+	  var conjugationForms = [
+	  //  {  name: "plain affirmative",           forms: ["う", "く", "ぐ", "す", "つ", "む", "ぶ", "ぬ", "る", "る"]  },
+
+	  // present tense: 0-5
+	  {  name: "polite affirmative",          forms: ["います", "きます", "ぎます", "します", "ちます", "みます", "びます", "にます", "ります", "ます"]  },
+	  {  name: "plain negative",              forms: ["わない", "かない", "がない", "さない", "たない", "まない", "ばない", "なない", "らない", "ない"]  },
+	  {  name: "polite negative",             forms: ["いません", "きません", "ぎません", "しません", "ちません", "みません", "びません", "にません", "りません", "ません"]  },
+	  {  name: "curt negative (archaic)",     forms: ["わん", "かん", "がん", "さん", "たん", "まん", "ばん", "なん", "らん", "ん"]  },
+	  {  name: "polite negative (archaic)",   forms: ["いませぬ", "きませぬ", "ぎませぬ", "しませぬ", "ちませぬ", "みませぬ", "びませぬ", "にませぬ", "りませぬ", "ませぬ"]  },
+
+	  // past tense: 6-9
+	  {  name: "past tense",                  forms: ["った", "いた", "いだ", "した", "った", "んだ", "んだ", "んだ", "った", "た"]  },
+	  {  name: "polite affirmative",          forms: ["いました", "きました", "ぎました", "しました", "ちました", "みました", "びました", "にました", "りました", "ました"]  },
+	  {  name: "plain negative",              forms: ["わなかった", "かなかった", "がなかった", "さなかった", "たなかった", "まなかった", "ばなかった", "ななかった", "らなかった", "なかった"]  },
+	  {  name: "polite negative",             forms: ["いませんでした", "きませんでした", "ぎませんでした", "しませんでした", "ちませんでした", "みませんでした", "びませんでした", "にませんでした", "りませんでした", "ませんでした"]  },
+
+	  // perfect: 10
+	  {  name: "negative perfect",            forms: ["わず(に)", "かず(に)", "がず(に)", "さず(に)", "たず(に)", "まず(に)", "ばず(に)", "なず(に)", "らず(に)", "ず(に)"]  },
+
+	  // ta form: 11
+	  {  name: "representative",              forms: ["ったり", "いたり", "いだり", "したり", "ったり", "んだり", "んだり", "んだり", "ったり", "たり"]  },
+
+	  // renyoukei: 12-13
+	  {  name: "conjunctive",                 forms: ["い-", "き-", "ぎ-", "し-", "ち-", "み-", "び-", "に-", "り-", "-"]  },
+	  {  name: "way of doing",                forms: ["いかた", "きかた", "ぎかた", "しかた", "ちかた", "みかた", "びかた", "にかた", "りかた", "かた"]  },
+
+	  // te forms: 14-22
+	  {  name: "te form",                     forms: ["って", "いて", "いで", "して", "って", "んで", "んで", "んで", "って", "て"]  },
+	  {  name: "te iru",                      forms: ["っている", "いている", "いでいる", "している", "っている", "んでいる", "んでいる", "んでいる", "っている", "ている"]  },
+	  {  name: "simplified te iru",           forms: ["ってる", "いてる", "いでる", "してる", "ってる", "んでる", "んでる", "んでる", "ってる", "てる"]  },
+	  {  name: "te aru",                      forms: ["ってある", "いてある", "いである", "してある", "ってある", "んである", "んである", "んである", "ってある", "てある"]  },
+	  {  name: "simplified te ageru",         forms: ["ったげる", "いたげる", "いだげる", "したげる", "ったげる", "んだげる", "んだげる", "んだげる", "ったげる", "たげる"]  },
+	  {  name: "te oru",                      forms: ["っておる", "いておる", "いでおる", "しておる", "っておる", "んでおる", "んでおる", "んでおる", "っておる", "ておる"]  },
+	  {  name: "simplified te oru",           forms: ["っとる", "いとる", "いどる", "しとる", "っとる", "んどる", "んどる", "んどる", "っとる", "とる"]  },
+	  {  name: "te oku",                      forms: ["っておく", "いておく", "いでおく", "しておく", "っておく", "んでおく", "んでおく", "んでおく", "っておく", "ておく"]  },
+	  {  name: "simplified te oku",           forms: ["っとく", "いとく", "いどく", "しとく", "っとく", "んどく", "んどく", "んどく", "っとく", "とく"]  },
+
+	  // tai/tageru: 23-24
+	  {  name: "desire",                      forms: ["いたい", "きたい", "ぎたい", "したい", "ちたい", "みたい", "びたい", "にたい", "りたい", "たい"]  },
+	  {  name: "other's desire",              forms: ["いたがる", "きたがる", "ぎたがる", "したがる", "ちたがる", "みたがる", "びたがる", "にたがる", "りたがる", "たがる"]  },
+
+	  // pseudo-futurum forms: 25-30
+	  {  name: "pseudo futurum",              forms: ["おう", "こう", "ごう", "そう", "とう", "もう", "ぼう", "のう", "ろう", "よう"]  },
+	  {  name: "polite presumptive",          forms: ["うでしょう", "くでしょう", "ぐでしょう", "すでしょう", "つでしょう", "むでしょう", "ぶでしょう", "ぬでしょう", "るでしょう", "るでしょう"]  },
+	  {  name: "plain presumptive",           forms: ["うだろう", "くだろう", "ぐだろう", "すだろう", "つだろう", "むだろう", "ぶだろう", "ぬだろう", "るだろう", "るだろう"]  },
+	  {  name: "polite negative presumptive", forms: ["わないだろう", "かないだろう", "がないだろう", "さないだろう", "たないだろう", "まないだろう", "ばないだろう", "なないだろう", "らないだろう", "ないだろう"]  },
+	  {  name: "plain negative presumptive",  forms: ["うまい", "くまい", "ぐまい", "すまい", "つまい", "むまい", "ぶまい", "ぬまい", "るまい", "まい"]  },
+	  {  name: "past presumptive",            forms: ["ったろう", "いたろう", "いだろう", "したろう", "ったろう", "んだろう", "んだろう", "んだろう", "った", "たろう"]  },
+
+	  // izenkei / kateikei: 31-32
+	  {  name: "hypothetical",                forms: ["えば", "けば", "げば", "せば", "てば", "めば", "べば", "ねば", "れば", "れば"]  },
+	  {  name: "past hypothetical",           forms: ["ったら", "いたら", "いだら", "したら", "ったら", "んだら", "んだら", "んだら", "ったら", "たら"]  },
+	  {  name: "short potential",             forms: ["える", "ける", "げる", "せる", "てる", "める", "べる", "ねる", "れる", ""]  },
+
+	  // saserareru: 33-35
+	  {  name: "passive",                     forms: ["われる", "かれる", "がれる", "される", "たれる", "まれる", "ばれる", "なれる", "られる", "られる"]  },
+	  {  name: "causative",                   forms: ["わせる", "かせる", "がせる", "させる", "たせる", "ませる", "ばせる", "なせる", "らせる", "させる"]  },
+	  {  name: "causative passive",           forms: ["わせられる", "かせられる", "がせられる", "させられる", "たせられる", "ませられる", "ばせられる", "なせられる", "らせられる", "させられる"]  },
+
+	  // commands: 36-41
+	  {  name: "requesting",                  forms: ["ってください", "いてください", "いでください", "してください", "ってください", "んでください", "んでください", "んでください", "ってください", "てください"]  },
+
+	  {  name: "commanding",                  forms: ["え", "け", "げ", "せ", "て", "め", "べ", "ね", "れ", "ろ"]  },
+	  {  name: "authoritative",               forms: ["いなさい", "きなさい", "ぎなさい", "しなさい", "ちなさい", "みなさい", "びなさい", "になさい", "りなさい", "なさい"]  },
+	  {  name: "advisory",                    forms: ["", "", "", "", "", "", "", "", "", "よ"]  },
+	  {  name: "negative request",            forms: ["わないでください", "かないでください", "がないでください", "さないでください", "たないでください", "まないでください", "ばないでください", "なないでください", "らないでください", "ないでください"]  },
+	  {  name: "negative imperative",         forms: ["うな", "くな", "ぐな", "すな", "つな", "むな", "ぶな", "ぬな", "るな", "るな"]  },
+
+	  // belief about [...]ness: 42-44
+	  {  name: "looks to be the case",        forms: ["いそう", "きそう", "ぎそう", "しそう", "ちそう", "みそう", "びそう", "にそう", "りそう", "そう"]  },
+	  {  name: "claimed to be the case",      forms: ["うそう", "くそう", "ぐそう", "すそう", "つそう", "むそう", "ぶそう", "ぬそう", "るそう", "るそう"]  },
+	  {  name: "apparently the case",         forms: ["うらしい", "くらしい", "ぐらしい", "すらしい", "つらしい", "むらしい", "ぶらしい", "ぬらしい", "るらしい", "るらしい"]  }
+	];
+
+	conjugationForms.sort(function(a, b) { return b.forms[0].length - a.forms[0].length; });
+
+	var verbTypes = ["v5u", "v5k", "v5g", "v5s", "v5t", "v5m", "v5b", "v5n", "v5r", "v1"];
+	var verbEndings = ["う", "く", "ぐ", "す", "つ", "む", "ぶ", "ぬ", "る", "る"];
+
+	var process = function(word, seen, aggregated, entry, i, suffix, j) {
+	  if(!suffix.trim()) return;
+	  var re = new RegExp(suffix + "$");
+	  if (word.match(re)) {
+	    newword = word.replace(re, verbEndings[j]);
+	    // special check for する
+	    if (newword === "す") { newword = "する"; }
+	    // terminal check for orphan v1
+	    if (newword === "る") { return; }
+	    aggregated.push(destep(newword, seen.concat({
+	      word: newword,
+	      found: entry.name,
+	      verbType: verbTypes[j]
+	    })));
+	  }
+	};
+
+	var destep = function (word, seen) {
+	  seen = seen || [];
+	  var aggregated = [];
+	  conjugationForms.forEach(function(entry, i) {
+	    entry.forms.forEach(function(suffix, j) {
+	      process(word, seen, aggregated, entry, i, suffix, j);
+	    });
+	  });
+	  if(aggregated.length === 0) return seen.slice();
+	  return aggregated;
+	};
+
+	module.exports = {
+
+	  /**
+	   * conjugate a verb
+	   */
+	  conjugate: function (verb, type) {
+	    type = type || "v5";
+	    var index, verbstem, ret = [];
+	    if (type.toLowerCase().indexOf("v1") > -1) {
+	      index = verbTypes.indexOf("v1");
+	      verbstem = verb.substring(0, verb.length - 1);
+	    } else {
+	      var lastchar = verb.substring(verb.length-1,verb.length);
+	      index = verbEndings.indexOf(lastchar);
+	      verbstem = verb.substring(0, verb.length - 1);
+	    }
+	    var i, e = conjugationForms.length, form, specific;
+	    for (i = 0; i < e; i++) {
+	      form = conjugationForms[i];
+	      specific = form.forms[index];
+	      if (specific !== false) {
+	        ret.push({name: form.name, form: verbstem + specific});
+	      }
+	    }
+	    return ret;
+	  },
+
+	  /**
+	   * try to find the original verb for a conjugation
+	   */
+	  unconjugate: function (word, verbtype) {
+	    var result = destep(word);
+	    return result;
+	  }
+
+	};
+
+
+/***/ },
+/* 171 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	var React = __webpack_require__(1);
+	var dictionaries = __webpack_require__(163);
+	var bushu = __webpack_require__(172);
+
+	var KANJI = React.createClass({
+	  displayName: "KANJI",
+
+	  statics: {
+	    search: function search(term, processResults) {
+	      term = JSON.stringify(term);
+	      dictionaries.kanji.search(term, function (data) {
+	        KANJI.processResults(term, data, processResults);
+	      });
+	    },
+	    processResults: function processResults(term, resultset, callback) {
+	      callback("kanji", {
+	        term: term,
+	        resultset: resultset
+	      });
+	    }
+	  },
+
+	  getInitialState: function getInitialState() {
+	    return {
+	      reading: "あか",
+	      strokecmp: "=",
+	      strokecount: "any"
+	    };
+	  },
+
+	  render: function render() {
+	    var _this = this;
+
+	    var iprops = function iprops(type) {
+	      return {
+	        value: _this.state[type],
+	        onChange: _this.update(type),
+	        onKeyDown: _this.testForSearch
+	      };
+	    };
+
+	    return React.createElement(
+	      "div",
+	      null,
+	      "Kanji search: ",
+	      React.createElement("input", _extends({ type: "text" }, iprops("kanji"))),
+	      React.createElement(
+	        "span",
+	        null,
+	        " - or - search on "
+	      ),
+	      "reading: ",
+	      React.createElement("input", _extends({ type: "text" }, iprops("reading"))),
+	      "meaning: ",
+	      React.createElement("input", _extends({ type: "text" }, iprops("meaning"))),
+	      "radical: ",
+	      this.generateRadicalSelector(),
+	      "stroke count ",
+	      this.generateComparator(),
+	      " ",
+	      this.generateStrokePulldown(),
+	      React.createElement(
+	        "button",
+	        { onClick: this.startSearch },
+	        "search kanji"
+	      )
+	    );
+	  },
+
+	  generateComparator: function generateComparator() {
+	    var options = ["=", "<=", ">="].map(function (v) {
+	      return React.createElement(
+	        "option",
+	        { value: v },
+	        v
+	      );
+	    });
+	    return React.createElement(
+	      "select",
+	      { onChange: this.setSelection("strokecmp") },
+	      options
+	    );
+	  },
+
+	  generateStrokePulldown: function generateStrokePulldown() {
+	    var strokes = ["any"];
+	    for (var s = 1; s < 35; s++) {
+	      strokes.push(s);
+	    }
+	    var options = strokes.map(function (v) {
+	      return React.createElement(
+	        "option",
+	        { value: v },
+	        v
+	      );
+	    });
+	    return React.createElement(
+	      "select",
+	      { onChange: this.setSelection("strokecount") },
+	      options
+	    );
+	  },
+
+	  setSelection: function setSelection(name) {
+	    var _this2 = this;
+
+	    return function (evt) {
+	      var update = {};
+	      update[name] = evt.target.value;
+	      _this2.setState(update);
+	    };
+	  },
+
+	  generateRadicalSelector: function generateRadicalSelector() {
+	    var options = bushu.map(function (b, i) {
+	      return React.createElement(
+	        "option",
+	        { value: i },
+	        i === 0 ? "any" : i + " - " + b
+	      );
+	    });
+	    return React.createElement(
+	      "select",
+	      { onChange: this.setSelection("radical") },
+	      options
+	    );
+	  },
+
+	  testForSearch: function testForSearch(evt) {
+	    if (evt.keyCode === 13) {
+	      this.startSearch();
+	    }
+	  },
+
+	  update: function update(type) {
+	    var _this3 = this;
+
+	    return function (evt) {
+	      var newstate = {};
+	      newstate[type] = evt.target.value;
+	      _this3.setState(newstate);
+	    };
+	  },
+
+	  startSearch: function startSearch() {
+	    this.props.startSearch(this.search);
+	  },
+
+	  search: function search() {
+	    KANJI.search(this.state, this.props.processResults);
+	  }
+	});
+
+	module.exports = KANJI;
+
+/***/ },
+/* 172 */
+/***/ function(module, exports) {
+
+	module.exports = ["","一","｜","丶","ノ","乙 (乚)","亅","二","亠","人 (イ)","儿","入","八","冂","冖","冫",
+	                  "几","凵","刀 (刂)","力","勹","匕","匚","匸","十","卜","卩","厂","厶","又","口","囗","土",
+	                  "士","夂","夊","夕","大","女","子","宀","寸","小","尢","尸","屮","山","川 (巛)","工","己 (已/巳)",
+	                  "巾","干","幺","广","廴","廾","弋","弓","彐 (彑)","彡","彳","心 (忄)","戈","戸","手 (扌)",
+	                  "支","攵 (夂)","文","斗","斤","方","无","日 (曰)","曰","月","木","欠","止","歹","殳","毌 (母)",
+	                  "比","毛","氏","气","水 (氵/氺)","火 (灬)","爪 (爫)","父","爻","爿","片","牙","牛 (牜)","犬 (犭)",
+	                  "玄","玉 (王/壬)","瓜","瓦","甘","生","用","田","疋","疒","癶","白","皮","皿","目","矛","矢",
+	                  "石","示 (ネ)","禸","禾","穴","立","竹","米","糸","缶","网 (罒/罓)","羊","羽","老","而","耒",
+	                  "耳","聿","肉 (月)","臣","自","至","臼","舌","舛","舟","艮","色","艸","虍","虫","血","行",
+	                  "衣 (衤)","西 (襾)","見","角","言","谷","豆","豕","豸","貝","赤","走","足","身","車","辛",
+	                  "辰","辵 (辶)","邑 ( 阝)","酉","釆 (采)","里","金","長 (镸)","門","阜 (阝 )","隶","隹",
+	                  "雨","青 (靑)","非","面 (靣)","革","韋","韭","音","頁","風","飛","食","首","香","馬","骨",
+	                  "高 (髙)","髟","鬥","鬯","鬲","鬼","魚","鳥","鹵","鹿","麥 (麦)","麻","黄","黍","黑 (黒)",
+	                  "黹","黽","鼎","鼓 (鼔)","鼠","鼻","齊 (斉)","齒 (歯)","龍 (竜)","龜 (亀)","龠"];
+
+
+/***/ },
+/* 173 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+	var React = __webpack_require__(1);
+	var dictionaries = __webpack_require__(163);
+
+	var GIONGO = React.createClass({
+	  displayName: "GIONGO",
+
+	  statics: {
+	    search: function search(term, processResults) {
+	      dictionaries.giongo.search(term, function (data) {
+	        GIONGO.processResults(term, data, processResults);
+	      });
+	    },
+	    processResults: function processResults(term, resultset, callback) {
+	      callback("giongo", {
+	        term: term,
+	        resultset: resultset
+	      });
+	    }
+	  },
+
+	  getInitialState: function getInitialState() {
+	    return {
+	      searchterm: "ペラペラ"
+	    };
+	  },
+
+	  render: function render() {
+	    var _this = this;
+
+	    var iprops = function iprops(type) {
+	      return {
+	        value: _this.state[type],
+	        onChange: _this.update(type),
+	        onKeyDown: _this.testForSearch
+	      };
+	    };
+
+	    return React.createElement(
+	      "div",
+	      null,
+	      "Sound words search: ",
+	      React.createElement("input", _extends({ type: "text" }, iprops("searchterm"))),
+	      React.createElement(
+	        "button",
+	        { onClick: this.startSearch },
+	        "search gi(on|tai)go"
+	      )
+	    );
+	  },
+
+	  testForSearch: function testForSearch(evt) {
+	    if (evt.keyCode === 13) {
+	      this.startSearch();
+	    }
+	  },
+
+	  update: function update(type) {
+	    var _this2 = this;
+
+	    return function (evt) {
+	      var newstate = {};
+	      newstate[type] = evt.target.value;
+	      _this2.setState(newstate);
+	    };
+	  },
+
+	  startSearch: function startSearch() {
+	    this.props.startSearch(this.search);
+	  },
+
+	  search: function search() {
+	    GIONGO.search(this.state.searchterm, this.props.processResults);
+	  }
+	});
+
+	module.exports = GIONGO;
+
+/***/ },
 /* 174 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	var React = __webpack_require__(1);
+	var verbs = __webpack_require__(175);
+	var adverbs = ["adv", "adv-to"];
+	var adjectives = ["adj", "adj-no", "adj-na", "adj-i"];
+
+	var compare = {
+	  kana: function kana(a, b) {
+	    a = a.reb[0];
+	    b = b.reb[0];
+	    return a < b ? -1 : a > b ? 1 : 0;
+	  },
+	  kanji: function kanji(a, b) {
+	    a = a.keb ? a.keb[0] : a.reb[0];
+	    b = b.keb ? b.keb[0] : b.reb[0];
+	    return a < b ? 1 : -1;
+	  }
+	};
+
+	var Filters = React.createClass({
+	  displayName: "Filters",
+
+	  statics: {
+	    defaultState: {
+	      hideAll: false,
+	      romaji: false,
+	      sorting: "kana",
+	      pos: "all"
+	    }
+	  },
+
+	  getInitialState: function getInitialState() {
+	    var initialState = Filters.defaultState;
+	    initialState.term = this.props.term;
+	    var settings = this.props.filterSettings || {};
+	    Object.keys(settings).forEach(function (v) {
+	      initialState[v] = settings[v];
+	    });
+	    return initialState;
+	  },
+
+	  componentDidMount: function componentDidMount() {
+	    this.filter();
+	  },
+
+	  componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
+	    if (this.props.term !== prevProps.term) {
+	      this.filter();
+	    }
+	  },
+
+	  render: function render() {
+	    return React.createElement(
+	      "div",
+	      null,
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "romaji: "
+	        ),
+	        React.createElement("input", { type: "checkbox", checked: this.state.romaji, onChange: this.toggle("romaji") })
+	      ),
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "sort on: "
+	        ),
+	        React.createElement(
+	          "select",
+	          { value: this.state.sorting, onChange: this.setSelection("sorting") },
+	          React.createElement(
+	            "option",
+	            { value: "kana" },
+	            "kana"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "kanji" },
+	            "kanji"
+	          )
+	        )
+	      ),
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "reverse sort: "
+	        ),
+	        React.createElement("input", { type: "checkbox", checked: this.state.revset, onChange: this.toggle("revsort") })
+	      ),
+	      React.createElement(
+	        "fieldset",
+	        null,
+	        React.createElement(
+	          "label",
+	          null,
+	          "show: "
+	        ),
+	        React.createElement(
+	          "select",
+	          { value: this.state.pos, onChange: this.setSelection("pos") },
+	          React.createElement(
+	            "option",
+	            { value: "all" },
+	            "all results"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "v" },
+	            "├ verbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "v1" },
+	            "│ ├ ichidan verbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "v5" },
+	            "│ ├ godan verbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "vs" },
+	            "│ └ する verbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "n" },
+	            "├ nouns"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adj-no" },
+	            " │ └ の qualifier"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adj" },
+	            "├ adjectives"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adj-i" },
+	            "│ ├ い-adjectives"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adj-na" },
+	            " │ └ な-adjectives"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adv" },
+	            "├ adverbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "adj-to" },
+	            " │ └ と adverbs"
+	          ),
+	          React.createElement(
+	            "option",
+	            { value: "exp" },
+	            "└ expressions"
+	          )
+	        )
+	      )
+	    );
+	  },
+
+	  setSelection: function setSelection(name) {
+	    var _this = this;
+
+	    return function (evt) {
+	      var update = {};
+	      update[name] = evt.target.value;
+	      _this.setState(update, _this.filter);
+	    };
+	  },
+
+	  toggle: function toggle(name) {
+	    var _this2 = this;
+
+	    return function (evt) {
+	      var update = {};
+	      update[name] = !_this2.state[name];
+	      _this2.setState(update, function () {
+	        this.filter();
+	      });
+	    };
+	  },
+
+	  filter: function filter() {
+	    var resultset = this.props.resultset;
+	    var results = resultset.results.filter(function (e) {
+	      return !!e;
+	    });
+	    results.forEach(this.filterEntry);
+	    resultset.results = results.sort(this.sortEntries);
+	    this.props.onChange(this.state, resultset);
+	  },
+
+	  sortEntries: function sortEntries(a, b) {
+	    var cmp = compare[this.state.sorting](a, b);
+	    return this.state.revsort ? -cmp : cmp;
+	  },
+
+	  /**
+	   * This is the function that makes all the magic happen
+	   */
+	  filterEntry: function filterEntry(entry) {
+	    // selective UI filtering:
+	    entry.showRomaji = this.state.romaji;
+
+	    // integral visibility filtering:
+	    entry.hidden = this.state.hideAll;
+
+	    if (this.state.pos !== "all") {
+	      entry.hidden = !this.posMatch(this.state.pos, entry);
+	    }
+	  },
+
+	  /**
+	   * POS matching is a little hectic...
+	   */
+	  posMatch: function posMatch(pos, entry) {
+	    for (var i = 0, s; i < entry.sense.length; i++) {
+	      s = entry.sense[i];
+	      // verbs need a fair few checks
+	      if (pos === "v") {
+	        for (var j = 0, v; j < verbs.all.length; j++) {
+	          v = verbs.all[j];
+	          if (s.pos.indexOf(v) > -1) return true;
+	        }
+	      } else if (pos === "v1") {
+	        for (var j = 0, v; j < verbs.v1.length; j++) {
+	          v = verbs.v1[j];
+	          if (s.pos.indexOf(v) > -1) return true;
+	        }
+	      } else if (pos === "v5") {
+	        for (var j = 0, v; j < verbs.v5.length; j++) {
+	          v = verbs.v5[j];
+	          if (s.pos.indexOf(v) > -1) return true;
+	        }
+	      } else if (pos === "adj") {
+	        for (var j = 0, v; j < adjectives.length; j++) {
+	          v = adjectives[j];
+	          if (s.pos.indexOf(v) > -1) return true;
+	        }
+	      } else if (pos === "adv") {
+	        for (var j = 0, v; j < adverbs.length; j++) {
+	          v = adverbs[j];
+	          if (s.pos.indexOf(v) > -1) return true;
+	        }
+	      } else {
+	        if (s.pos.indexOf(pos) > -1) return true;
+	      }
+	    }
+	    return false;
+	  }
+	});
+
+	module.exports = Filters;
+
+/***/ },
+/* 175 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	var all = ["v1", "v1-s", "v2a-s", "v4h", "v4r", "v5b", "v5g", "v5k", "v5k-s", "v5m", "v5n", "v5r", "v5r-i", "v5s", "v5t", "v5u", "v5u-s", "v5uru", "vz", "vi", "vk", "vn", "vr", "vs", "vs-c", "vs-s", "vs-i"];
+
+	module.exports = {
+	  all: all,
+	  v1: all.slice(0, 2),
+	  v5: all.slice(5, 18)
+	};
+
+/***/ },
+/* 176 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var React = __webpack_require__(1);
 
-	var romanise = __webpack_require__(173).romanise;
+	var Filters = React.createClass({
+	  displayName: 'Filters',
+
+	  render: function render() {
+	    return React.createElement(
+	      'div',
+	      null,
+	      'filters for gioingo and gitaigo'
+	    );
+	  }
+
+	});
+
+	module.exports = Filters;
+
+/***/ },
+/* 177 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var React = __webpack_require__(1);
+
+	var romanise = __webpack_require__(169).romanise;
 
 	var Entry = React.createClass({
 	  displayName: 'Entry',
@@ -35599,12 +35892,6 @@
 	      alignContent: 'center',
 	      rubyAlign: 'center'
 	    }
-	  },
-
-	  getInitialState: function getInitialState() {
-	    return {
-	      showHeader: true
-	    };
 	  },
 
 	  generateReadings: function generateReadings(reb, showRomaji) {
@@ -35633,37 +35920,68 @@
 	    ) : false;
 	  },
 
-	  searchEnglish: function searchEnglish(term) {
+	  searchKanji: function searchKanji(term) {
 	    var _this = this;
 
 	    return function () {
-	      _this.props.crosslink(term, 'jpen');
+	      _this.props.crosslink(term, 'kanji');
+	    };
+	  },
+
+	  generateKanjiForms: function generateKanjiForms(keb) {
+	    var _this2 = this;
+
+	    return keb.map(function (kanjiform) {
+	      var sep = kanjiform.split('');
+	      return sep.map(function (k) {
+	        return React.createElement(
+	          'span',
+	          { onClick: _this2.searchKanji(k) },
+	          k
+	        );
+	      });
+	    });
+	  },
+
+	  searchEnglish: function searchEnglish(term) {
+	    var _this3 = this;
+
+	    return function () {
+	      _this3.props.crosslink(term, 'jpen');
 	    };
 	  },
 
 	  crossLinkEnglish: function crossLinkEnglish(gloss) {
-	    var _this2 = this;
+	    var _this4 = this;
 
 	    return gloss.map(function (term) {
 	      return React.createElement(
 	        'span',
-	        { onClick: _this2.searchEnglish(term) },
+	        { onClick: _this4.searchEnglish(term) },
 	        term
 	      );
 	    });
 	  },
 
-	  generateMeanings: function generateMeanings(eng) {
-	    return React.createElement(
-	      'span',
-	      null,
-	      this.crossLinkEnglish(eng)
-	    );
-	  },
+	  generateMeanings: function generateMeanings(entry) {
+	    var _this5 = this;
 
-	  killHeader: function killHeader() {
-	    this.setState({
-	      showHeader: false
+	    var sense = entry.sense;
+	    if (!sense) return false;
+	    return sense.map(function (s) {
+	      var pos = s.pos,
+	          gloss = s.gloss;
+	      return [pos.length === 0 ? false : React.createElement(
+	        'div',
+	        null,
+	        '[',
+	        pos.join(', '),
+	        ']'
+	      ), React.createElement(
+	        'div',
+	        null,
+	        _this5.crossLinkEnglish(gloss)
+	      )];
 	    });
 	  },
 
@@ -35675,61 +35993,19 @@
 	      React.createElement(
 	        'div',
 	        null,
-	        React.createElement('img', { src: 'http://localhost:6789/svg/' + entry.literal, onLoad: this.killHeader })
+	        'reading: ',
+	        this.generateReadings(entry.reb, entry.showRomaji)
 	      ),
-	      this.state.showHeader ? React.createElement(
-	        'h1',
+	      entry.keb && entry.keb.length > 0 ? React.createElement(
+	        'div',
 	        null,
-	        entry.literal
+	        'kanji: ',
+	        this.generateKanjiForms(entry.keb)
 	      ) : false,
 	      React.createElement(
-	        'span',
-	        null,
-	        '(',
-	        entry.codepoint,
-	        ')'
-	      ),
-	      ',',
-	      React.createElement(
-	        'span',
-	        null,
-	        entry.radical
-	      ),
-	      ',',
-	      React.createElement(
-	        'span',
-	        null,
-	        entry.strokeCount
-	      ),
-	      ',',
-	      React.createElement(
-	        'span',
-	        null,
-	        entry.grade
-	      ),
-	      ',',
-	      React.createElement(
-	        'span',
-	        null,
-	        entry.frequency
-	      ),
-	      ',',
-	      React.createElement(
-	        'span',
-	        null,
-	        entry.jlpt
-	      ),
-	      React.createElement(
 	        'div',
 	        null,
-	        'reading:  ',
-	        this.generateReadings(entry.readings, entry.showRomaji)
-	      ),
-	      React.createElement(
-	        'div',
-	        null,
-	        'meanings: ',
-	        this.generateMeanings(entry.meanings)
+	        this.generateMeanings(entry)
 	      )
 	    );
 	  }
@@ -35739,7 +36015,188 @@
 	module.exports = Entry;
 
 /***/ },
-/* 175 */
+/* 178 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var React = __webpack_require__(1);
+
+	var romanise = __webpack_require__(169).romanise;
+
+	var Entry = React.createClass({
+	  displayName: 'Entry',
+
+	  statics: {
+	    rt: {
+	      alignContent: 'center',
+	      rubyAlign: 'center'
+	    }
+	  },
+
+	  mixins: [__webpack_require__(181)],
+
+	  generateReadings: function generateReadings(reb, showRomaji) {
+	    var _this = this;
+
+	    if (showRomaji) {
+	      return reb.map(function (reading) {
+	        return React.createElement(
+	          'div',
+	          { className: 'ruby' },
+	          React.createElement(
+	            'div',
+	            { onClick: _this.crosslink(reading, 'jpen') },
+	            romanise(reading)
+	          ),
+	          React.createElement(
+	            'div',
+	            null,
+	            reading
+	          )
+	        );
+	      });
+	    }
+	    return reb ? React.createElement(
+	      'span',
+	      null,
+	      this.crosslink(reb, 'jpen')
+	    ) : false;
+	  },
+
+	  render: function render() {
+	    var entry = this.props;
+	    return React.createElement(
+	      'div',
+	      { className: 'entry', hidden: this.props.hidden },
+	      React.createElement(
+	        'div',
+	        null,
+	        React.createElement('img', { src: 'http://localhost:6789/svg/' + entry.literal })
+	      ),
+	      React.createElement(
+	        'div',
+	        null,
+	        React.createElement(
+	          'span',
+	          null,
+	          entry.literal
+	        ),
+	        ',',
+	        React.createElement(
+	          'span',
+	          null,
+	          'radical: ',
+	          entry.radical
+	        ),
+	        ',',
+	        React.createElement(
+	          'span',
+	          null,
+	          'strokes: ',
+	          entry.strokeCount
+	        ),
+	        ',',
+	        React.createElement(
+	          'span',
+	          null,
+	          'grade: ',
+	          entry.grade
+	        ),
+	        ',',
+	        React.createElement(
+	          'span',
+	          null,
+	          'frequency: ',
+	          entry.frequency
+	        ),
+	        ',',
+	        React.createElement(
+	          'span',
+	          null,
+	          'jlpt: ',
+	          entry.jlpt
+	        )
+	      ),
+	      entry.parents.length > 0 ? React.createElement(
+	        'div',
+	        null,
+	        'graphical parents: ',
+	        this.crosslink(entry.parents, 'kanji')
+	      ) : false,
+	      entry.children.length > 0 ? React.createElement(
+	        'div',
+	        null,
+	        'graphical children: ',
+	        this.crosslink(entry.children, 'kanji')
+	      ) : false,
+	      entry.readings ? React.createElement(
+	        'div',
+	        null,
+	        'reading:  ',
+	        this.generateReadings(entry.readings, this.props.showRomaji)
+	      ) : fales,
+	      entry.meanings ? React.createElement(
+	        'div',
+	        null,
+	        'meanings: ',
+	        this.crosslink(entry.meanings, 'jpen')
+	      ) : false
+	    );
+	  }
+
+	});
+
+	module.exports = Entry;
+
+/***/ },
+/* 179 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	var React = __webpack_require__(1);
+	var ime = __webpack_require__(169);
+
+	var Entry = React.createClass({
+	  displayName: "Entry",
+
+	  render: function render() {
+	    var _this = this;
+
+	    var keys = Object.keys(this.props).slice();
+	    keys.splice(keys.indexOf("id"), 1);
+	    keys.splice(keys.indexOf("crosslink"), 1);
+	    var elements = keys.map(function (key) {
+	      return React.createElement(
+	        "div",
+	        null,
+	        key,
+	        ": ",
+	        _this.props[key].join(", ")
+	      );
+	    });
+
+	    var term = ime.convert(this.props.id);
+
+	    return React.createElement(
+	      "div",
+	      null,
+	      React.createElement(
+	        "div",
+	        null,
+	        term.katakana
+	      ),
+	      elements
+	    );
+	  }
+
+	});
+
+	module.exports = Entry;
+
+/***/ },
+/* 180 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -35815,6 +36272,33 @@
 	});
 
 	module.exports = Results;
+
+/***/ },
+/* 181 */
+/***/ function(module, exports, __webpack_require__) {
+
+	"use strict";
+
+	var React = __webpack_require__(1);
+	module.exports = {
+	  crosslink: function crosslink(entries, dictionary, options) {
+	    var _this = this;
+
+	    var handler = function handler(term) {
+	      return function () {
+	        _this.props.crosslink(term, dictionary, options);
+	      };
+	    };
+	    var mapper = function mapper(term) {
+	      return React.createElement(
+	        "span",
+	        { onClick: handler(term) },
+	        term
+	      );
+	    };
+	    return entries.map ? entries.map(mapper) : mapper(entries);
+	  }
+	};
 
 /***/ }
 /******/ ]);

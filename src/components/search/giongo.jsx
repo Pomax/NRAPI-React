@@ -1,11 +1,19 @@
 var React = require('react');
-var dictionaries = require("../../../lib/dictionaries");
+var dictionaries = require("../../lib/dictionaries");
 
 var GIONGO = React.createClass({
   statics: {
-    filters: require("./filters.jsx"),
-    entry: require("./entry.jsx"),
-    dictionary: dictionaries.giongo
+    search: function(term, processResults) {
+      dictionaries.giongo.search(term, function(data) {
+        GIONGO.processResults(term, data, processResults);
+      });
+    },
+    processResults: function(term, resultset, callback) {
+      callback("giongo", {
+        term: term,
+        resultset: resultset
+      });
+    }
   },
 
   getInitialState: function() {
@@ -15,36 +23,34 @@ var GIONGO = React.createClass({
   },
 
   render: function() {
-    var iprops = {
-      value: this.state.searchterm,
-      onKeyDown: this.testSearch,
-      onChange: this.updateSearchTerm
-    };
-
-    //
-    // TODO: allow queries on kanji, reading, meaning, or any of the numerical metadata.
-    //
-    // This will need a modeling refactor.
-    //
+    var iprops = (type) => {
+      return {
+        value: this.state[type],
+        onChange: this.update(type),
+        onKeyDown: this.testForSearch
+      };
+    }
 
     return (
       <div>
-        Sound words search: <input type="text" {...iprops}/>
-        <button onClick={this.startSearch}>search</button>
+        Sound words search: <input type="text" {...iprops("searchterm")}/>
+        <button onClick={this.startSearch}>search gi(on|tai)go</button>
       </div>
     );
   },
 
-  testSearch: function(evt) {
+  testForSearch: function(evt) {
     if (evt.keyCode===13) {
       this.startSearch();
     }
   },
 
-  updateSearchTerm: function(evt) {
-    this.setState({
-      searchterm: evt.target.value
-    });
+  update: function(type) {
+    return evt => {
+      var newstate = {};
+      newstate[type] = evt.target.value;
+      this.setState(newstate);
+    };
   },
 
   startSearch: function() {
@@ -52,16 +58,7 @@ var GIONGO = React.createClass({
   },
 
   search: function() {
-    GIONGO.dictionary.search(this.state.searchterm, this.processResults);
-  },
-
-  processResults: function(resultset) {
-    this.props.processResults({
-      term: this.state.searchterm,
-      resultset: resultset,
-      filters: GIONGO.filters,
-      entry: GIONGO.entry
-    });
+    GIONGO.search(this.state.searchterm, this.props.processResults);
   }
 });
 

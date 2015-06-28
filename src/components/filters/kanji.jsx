@@ -1,15 +1,25 @@
 var React = require('react');
 
 var compare = {
-  kana: function(a,b) {
-    a = a.reb[0];
-    b = b.reb[0];
-    return a<b ? -1 : a>b ? 1 : 0;
-  },
   kanji: function(a,b) {
-    a = a.keb ? a.keb[0] : a.reb[0];
-    b = b.keb ? b.keb[0] : b.reb[0];
-    return a<b ? 1 : -1
+    a = a.literal;
+    b = b.literal;
+    return a<b ? -1 : 1
+  },
+  grade: function(a,b) {
+    a = parseInt(a.grade || 100);
+    b = parseInt(b.grade || 100);
+    return a < b ? -1 : a > b ? 1 : compare.kanji(a,b);
+  },
+  jlpt: function(a,b) {
+    a = parseInt(a.jlpt || 0);
+    b = parseInt(b.jlpt || 0);
+    return a < b ? 1 : a > b ? -1 : compare.kanji(a,b);
+  },
+  strokeCount: function(a,b) {
+    var _a = parseInt(a.strokeCount);
+    var _b = parseInt(b.strokeCount);
+    return _a < _b ? -1 : _a > _b ? 1 : compare.kanji(a,b);
   }
 };
 
@@ -17,7 +27,8 @@ var Filters = React.createClass({
   statics: {
     defaultState: {
       hideAll: false,
-      romaji: false
+      romaji: false,
+      sorting: "kanji"
     }
   },
 
@@ -52,8 +63,10 @@ var Filters = React.createClass({
         <fieldset>
           <label>sort on: </label>
           <select value={this.state.sorting} onChange={this.setSelection("sorting")}>
-            <option value="kana">kana</option>
             <option value="kanji">kanji</option>
+            <option value="strokeCount">strokeCount</option>
+            <option value="grade">grade</option>
+            <option value="jlpt">jlpt</option>
           </select>
         </fieldset>
 

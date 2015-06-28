@@ -18,6 +18,7 @@
 
   app.get('/entry/:id', routes.entry);
   app.get('/svg/:id',   routes.svg);
+  //app.get('/reset',     routes.reset);
 
   var port = process.env.PORT || 6789;
   app.listen(port, function(err,res) {

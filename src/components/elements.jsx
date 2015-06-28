@@ -4,8 +4,8 @@ var search = {
     jpen: require("./search/jpen.jsx")
     ,
     kanji: require("./search/kanji.jsx")
-    // ,
-    // giongo: require("./search/giongo.jsx")
+    ,
+    giongo: require("./search/giongo.jsx")
     // ,
     // names: require("./search/names.jsx")
 };
@@ -14,8 +14,8 @@ var filters = {
     jpen: require("./filters/jpen.jsx")
     ,
     kanji: require("./filters/kanji.jsx")
-    // ,
-    // giongo: require("./filters/giongo.jsx")
+    ,
+    giongo: require("./filters/giongo.jsx")
     // ,
     // names: require("./filters/names.jsx")
 };
@@ -24,8 +24,8 @@ var entries = {
     jpen: require("./entries/jpen.jsx")
     ,
     kanji: require("./entries/kanji.jsx")
-    // ,
-    // giongo: require("./entries/giongo.jsx")
+    ,
+    giongo: require("./entries/giongo.jsx")
     // ,
     // names: require("./entries/names.jsx")
 };

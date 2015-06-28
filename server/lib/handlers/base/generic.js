@@ -55,7 +55,9 @@ module.exports = function(options) {
      * find all entries based on search terms
      */
     findAll: function(term, next) {
-      if(overrides.findAll) { return overrides.findAll.call(this, term, next); }
+      if(overrides.findAll) {
+        return overrides.findAll.call(this, term, next, sanitizeSQL, runQuery, prefix);
+      }
       var handler = this;
       var interpreted = IME.convert(term.toLowerCase());
       if(interpreted === false) {
@@ -84,7 +86,9 @@ module.exports = function(options) {
      */
     findUsingKanji: function(kanji, next) {
       kanji = sanitizeSQL(kanji).replace(/\*/g,'%');
-      if(overrides.findUsingKanji) { return overrides.findUsingKanji.call(this, kanji, next, sanitizeSQL, runQuery, prefix); }
+      if(overrides.findUsingKanji) {
+        return overrides.findUsingKanji.call(this, kanji, next, sanitizeSQL, runQuery, prefix);
+      }
       var query = "SELECT DISTINCT json.data AS json FROM "+prefix+"dictionary_json AS json, "+prefix+"dictionary_keb AS keb " +
                   "WHERE keb.data LIKE '"+kanji.replace(/\*/g,'%') +"' AND json.id = keb.id";
       runQuery(query, next);
@@ -96,14 +100,15 @@ module.exports = function(options) {
     findUsingKana: function(hiragana, katakana, next) {
       hiragana = sanitizeSQL(hiragana);
       katakana = sanitizeSQL(katakana);
-      if(overrides.findUsingKana) { return overrides.findUsingKana.call(this, hiragana, katakana, next); }
+      if(overrides.findUsingKana) {
+        return overrides.findUsingKana.call(this, hiragana, katakana, next, sanitizeSQL, runQuery, prefix);
+      }
       var query = "SELECT DISTINCT json.data AS json FROM "+prefix+"dictionary_json AS json, "+prefix+"dictionary_reb AS reb WHERE ";
       var opts = [];
       if(hiragana) { opts.push(" reb.data LIKE '" + hiragana.replace(/\*/g,'%') + "'"); }
       if(katakana) { opts.push(" reb.data LIKE '" + katakana.replace(/\*/g,'%') + "'"); }
       query += "(" + opts.join("OR") + ") AND json.id = reb.id";
       runQuery(query, next);
-
     },
 
     /**
@@ -111,7 +116,9 @@ module.exports = function(options) {
      */
     findUsingEnglish: function(eng, next) {
       eng = sanitizeSQL(eng);
-      if(overrides.findUsingEnglish) { return overrides.findUsingEnglish.call(this, eng, next); }
+      if(overrides.findUsingEnglish) {
+        return overrides.findUsingEnglish.call(this, eng, next, sanitizeSQL, runQuery, prefix);
+      }
       var query = "SELECT DISTINCT json.data AS json FROM "+prefix+"dictionary_json AS json, "+prefix+"dictionary_eng AS eng " +
                   "WHERE eng.data LIKE '"+eng.replace(/\*/g,'%')+"' AND json.id = eng.id";
       runQuery(query, next);

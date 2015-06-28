@@ -10,44 +10,20 @@ var Entry = React.createClass({
     }
   },
 
-  getInitialState: function() {
-    return {
-      showHeader: true
-    };
-  },
+  mixins: [
+    require("../mixins/crosslink")
+  ],
 
   generateReadings: function(reb, showRomaji) {
     if(showRomaji) {
-      return reb.map(function(reading) {
+      return reb.map((reading) => {
         return (<div className="ruby">
-          <div>{ romanise(reading) }</div>
+          <div onClick={ this.crosslink(reading, "jpen") }>{ romanise(reading) }</div>
           <div>{ reading }</div>
         </div>);
       });
     }
-    return reb ? <span>{ reb.join(", ") }</span> : false;
-  },
-
-  searchEnglish: function(term) {
-    return () => {
-      this.props.crosslink(term, "jpen");
-    };
-  },
-
-  crossLinkEnglish: function(gloss) {
-    return gloss.map(term => {
-      return <span onClick={this.searchEnglish(term)}>{term}</span>
-    });
-  },
-
-  generateMeanings: function(eng) {
-    return <span>{ this.crossLinkEnglish(eng) }</span>;
-  },
-
-  killHeader: function() {
-    this.setState({
-      showHeader: false
-    });
+    return reb ? <span>{ this.crosslink(reb, "jpen") }</span> : false;
   },
 
   render: function() {
@@ -55,18 +31,20 @@ var Entry = React.createClass({
     return (
       <div className="entry" hidden={this.props.hidden}>
         <div>
-          <img src={"http://localhost:6789/svg/" + entry.literal} onLoad={this.killHeader}/>
+          <img src={"http://localhost:6789/svg/" + entry.literal}/>
         </div>
-        { this.state.showHeader ? <h1>{ entry.literal }</h1> : false }
-        <span>({entry.codepoint  })</span>,
-        <span>{ entry.radical     }</span>,
-        <span>{ entry.strokeCount }</span>,
-        <span>{ entry.grade       }</span>,
-        <span>{ entry.frequency   }</span>,
-        <span>{ entry.jlpt        }</span>
-
-        <div>reading:  { this.generateReadings(entry.readings, entry.showRomaji) }</div>
-        <div>meanings: { this.generateMeanings(entry.meanings) }</div>
+        <div>
+          <span>{ entry.literal }</span>,
+          <span>radical: { entry.radical     }</span>,
+          <span>strokes: { entry.strokeCount }</span>,
+          <span>grade: { entry.grade       }</span>,
+          <span>frequency: { entry.frequency   }</span>,
+          <span>jlpt: { entry.jlpt        }</span>
+        </div>
+        { entry.parents.length>0 ? <div>graphical parents: { this.crosslink(entry.parents, "kanji") }</div> : false }
+        { entry.children.length>0 ? <div>graphical children: { this.crosslink(entry.children, "kanji") }</div> : false }
+        { entry.readings ? <div>reading:  { this.generateReadings(entry.readings, this.props.showRomaji) }</div> : fales }
+        { entry.meanings ? <div>meanings: { this.crosslink(entry.meanings, "jpen") }</div> : false }
       </div>
     );
   }
